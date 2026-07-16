@@ -1,0 +1,14 @@
+{
+  "name": "@klipai/tsconfig",
+  "version": "0.0.0",
+  "main": "base.json",
+  "files": [
+    "*.json"
+  ],
+  "scripts": {
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["ES2017", "DOM", "DOM.Iterable"],
+    "plugins": [{ "name": "next" }],
+    "paths": {
+      "@/*": ["./*"],
+      "@klipai/ui/*": ["../../packages/ui/src/*"],
+      "@klipai/core/*": ["../../packages/core/src/*"],
+      "@klipai/config/*": ["../../packages/config/src/*"],
+      "@klipai/db/*": ["../../packages/db/src/*"],
+      "@klipai/ai/*": ["../../packages/ai/src/*"]
+    }
+  }
+}
