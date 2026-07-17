@@ -2,11 +2,11 @@ import {
   PromptEnhancerInput,
   EnhancedGenerationRequest,
   ProviderResponse,
-  PipelineContext,
   GenerationType,
 } from "../pipeline/types";
 import { PromptEnhancer } from "./prompt-enhancer";
 import { providerRouter } from "./provider-router";
+import { PipelineOrchestrator } from "./pipeline-orchestrator";
 import { initializeProviders } from "../providers";
 import {
   GenerationRequest,
@@ -36,10 +36,15 @@ export interface GenerationJob {
 
 export class GenerationService {
   private promptEnhancer: PromptEnhancer;
+  private orchestrator: PipelineOrchestrator;
   private jobs: Map<string, GenerationJob> = new Map();
 
   constructor() {
     this.promptEnhancer = new PromptEnhancer();
+    this.orchestrator = new PipelineOrchestrator(
+      this.promptEnhancer,
+      providerRouter,
+    );
     initializeProviders();
   }
 
@@ -91,48 +96,10 @@ export class GenerationService {
       });
     }
 
-    await this.updateJob(jobId, {
-      status: GenerationStatus.PROCESSING,
-      progress: 10,
-      updatedAt: Date.now(),
-    });
-
     try {
-      // Step 1: Enhance prompt with Claude
-      await this.updateJob(jobId, { progress: 20, updatedAt: Date.now() });
-      const enhanced = await this.promptEnhancer.enhance(input);
-
-      // Step 2: Route to provider and generate
-      await this.updateJob(jobId, { progress: 40, updatedAt: Date.now() });
-      const response = await providerRouter.generate(enhanced);
-
-      // Step 3: Poll for completion
-      // Use the provider that actually served the request, not the
-      // originally recommended one — a fallback may have kicked in
-      // inside providerRouter.generate(), and polling the wrong
-      // provider will 404 or fetch someone else's job status.
-      const fulfilledBy =
-        (response.metadata?.provider as
-          "seedance" | "kling" | "wan" | undefined) ??
-        enhanced.metadata.recommendedProvider;
-
-      await this.updateJob(jobId, { progress: 60, updatedAt: Date.now() });
-      const completed = await providerRouter.waitForCompletion(
-        fulfilledBy,
-        response.id,
-        300000, // 5 minutes
+      await this.orchestrator.runPipeline(input, (update) =>
+        this.updateJob(jobId, { ...update, updatedAt: Date.now() }),
       );
-
-      await this.updateJob(jobId, {
-        status:
-          completed.status === "completed"
-            ? GenerationStatus.COMPLETED
-            : GenerationStatus.FAILED,
-        progress: 100,
-        resultUrl: completed.resultUrl,
-        error: completed.error,
-        updatedAt: Date.now(),
-      });
     } catch (error) {
       await this.updateJob(jobId, {
         status: GenerationStatus.FAILED,

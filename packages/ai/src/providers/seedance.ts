@@ -22,7 +22,7 @@ export class SeedanceProvider extends BaseProvider {
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
     ],
-    maxDuration: 12,
+    maxDuration: 15,
     maxResolution: "4k",
     pricing: { perSecond: 0.15, perImage: 0.02 },
     strengths: ["cinematic quality", "physics", "consistency", "storyboard"],

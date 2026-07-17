@@ -53,7 +53,7 @@ export class PromptEnhancer {
 2. Has multiple scenes: true/false
 3. Requires character/object consistency: true/false
 4. Physics complexity: low (static) | medium (simple motion) | high (complex physics, fluids, cloth)
-5. Suggested duration (seconds): 6 or 12
+5. Suggested duration (seconds): 6, 12, or 15
 6. Suggested aspect ratio: 9:16, 16:9, or 1:1
 
 Return ONLY valid JSON.`;
@@ -136,7 +136,7 @@ SCHEMA:
   "negativePrompt": "what to avoid",
   "type": "text-to-video",
   "params": {
-    "duration": 6|12,
+    "duration": 6|12|15,
     "aspectRatio": "9:16|16:9|1:1",
     "resolution": "720p|1080p|4k",
     "fps": 24|30,
@@ -157,7 +157,7 @@ RULES:
 - For storyboard: break into 3-5 scenes with timeRange, description, camera, lighting
 - Camera motion: match scene emotion (orbit for product, handheld for lifestyle)
 - Lighting: specify key/fill/rim for cinematic quality
-- Duration: 6s for simple, 12s for storyboard`,
+- Duration: 6s for simple, 12s for storyboard, 15s for complex/multi-shot narratives`,
 
       [GenerationType.IMAGE_TO_VIDEO]: `${basePrompt}
 
@@ -170,7 +170,7 @@ SCHEMA:
   "params": {
     "motionStrength": 0.1-1.0,
     "cameraMotion": "static|pan|zoom|orbit",
-    "duration": 6|12,
+    "duration": 6|12|15,
     "endImage": "optional base64/url"
   },
   "metadata": {...}

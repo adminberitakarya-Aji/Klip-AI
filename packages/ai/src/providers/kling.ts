@@ -22,7 +22,7 @@ export class KlingProvider extends BaseProvider {
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
     ],
-    maxDuration: 10,
+    maxDuration: 15,
     maxResolution: "1080p",
     pricing: { perSecond: 0.1, perImage: 0.015 },
     strengths: ["speed", "motion control", "physics"],

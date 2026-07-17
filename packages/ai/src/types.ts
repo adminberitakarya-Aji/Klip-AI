@@ -29,7 +29,7 @@ export interface ProviderConfig {
 }
 
 export interface TextToVideoOptions {
-  duration?: 6 | 12;
+  duration?: 6 | 12 | 15;
   aspectRatio?: "9:16" | "16:9" | "1:1";
   resolution?: "720p" | "1080p" | "4k";
   fps?: 24 | 30;
@@ -40,7 +40,7 @@ export interface TextToVideoOptions {
 export interface ImageToVideoOptions {
   motionStrength?: number;
   cameraMotion?: "static" | "pan" | "zoom";
-  duration?: 6 | 12;
+  duration?: 6 | 12 | 15;
 }
 
 export interface VideoToVideoOptions {

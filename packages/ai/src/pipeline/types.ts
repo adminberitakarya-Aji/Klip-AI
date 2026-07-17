@@ -44,7 +44,7 @@ export interface EnhancedGenerationRequest {
 // ============================================
 
 export interface TextToVideoParams {
-  duration: 6 | 12;
+  duration: 6 | 12 | 15;
   aspectRatio: "9:16" | "16:9" | "1:1";
   resolution: "720p" | "1080p" | "4k";
   fps: 24 | 30;
@@ -62,7 +62,7 @@ export interface TextToVideoParams {
 export interface ImageToVideoParams {
   motionStrength: number;
   cameraMotion: "static" | "pan" | "zoom" | "orbit";
-  duration: 6 | 12;
+  duration: 6 | 12 | 15;
   endImage?: string;
 }
 
@@ -125,7 +125,7 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
     ],
-    maxDuration: 12,
+    maxDuration: 15,
     maxResolution: "4k",
     pricing: { perSecond: 0.15, perImage: 0.02 },
     strengths: ["cinematic quality", "physics", "consistency", "storyboard"],
@@ -141,7 +141,7 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
     ],
-    maxDuration: 10,
+    maxDuration: 15,
     maxResolution: "1080p",
     pricing: { perSecond: 0.1, perImage: 0.015 },
     strengths: ["speed", "motion control", "physics"],
@@ -154,7 +154,7 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.IMAGE_TO_VIDEO,
       GenerationType.TEXT_TO_IMAGE,
     ],
-    maxDuration: 6,
+    maxDuration: 15,
     maxResolution: "720p",
     pricing: { perSecond: 0.05, perImage: 0.008 },
     strengths: ["fast", "cheap"],

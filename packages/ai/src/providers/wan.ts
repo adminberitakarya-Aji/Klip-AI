@@ -19,7 +19,7 @@ export class WanProvider extends BaseProvider {
       GenerationType.IMAGE_TO_VIDEO,
       GenerationType.TEXT_TO_IMAGE,
     ],
-    maxDuration: 6,
+    maxDuration: 15,
     maxResolution: "720p",
     pricing: { perSecond: 0.05, perImage: 0.008 },
     strengths: ["fast", "cheap"],
