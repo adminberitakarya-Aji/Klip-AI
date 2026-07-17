@@ -16,6 +16,11 @@ export interface EnhancedGenerationRequest {
 
   // Type & structured params (type-specific)
   type: GenerationType;
+
+  // Reference inputs (carried through from the original request)
+  images?: string[];
+  video?: string;
+
   params:
     | TextToVideoParams
     | ImageToVideoParams

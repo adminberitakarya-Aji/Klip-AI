@@ -304,6 +304,8 @@ Generate the complete structured prompt.`;
 
     return {
       ...parsed,
+      images: input.images,
+      video: input.video,
       metadata: {
         ...metadata,
         ...(parsed.metadata || {}),

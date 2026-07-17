@@ -107,9 +107,18 @@ export class GenerationService {
       const response = await providerRouter.generate(enhanced);
 
       // Step 3: Poll for completion
+      // Use the provider that actually served the request, not the
+      // originally recommended one — a fallback may have kicked in
+      // inside providerRouter.generate(), and polling the wrong
+      // provider will 404 or fetch someone else's job status.
+      const fulfilledBy =
+        (response.metadata?.provider as
+          "seedance" | "kling" | "wan" | undefined) ??
+        enhanced.metadata.recommendedProvider;
+
       await this.updateJob(jobId, { progress: 60, updatedAt: Date.now() });
       const completed = await providerRouter.waitForCompletion(
-        enhanced.metadata.recommendedProvider,
+        fulfilledBy,
         response.id,
         300000, // 5 minutes
       );

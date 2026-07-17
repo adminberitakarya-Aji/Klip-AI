@@ -6,7 +6,7 @@ import {
   GenerationType,
   ProviderRequest,
 } from "../pipeline/types";
-import { AIProvider } from "../types";
+import { AIProvider, GenerationRequest } from "../types";
 
 interface CircuitBreakerState {
   failures: number;
@@ -238,7 +238,21 @@ export class ProviderRouter {
 
       try {
         console.log(`Attempting generation with ${provider.name}...`);
-        const response = await provider.generate(request.payload as any);
+
+        // Providers expect the structured GenerationRequest shape
+        // ({ prompt, type, options, images, video }), not the flat
+        // router payload. Wrap it correctly here so buildPayload()
+        // and getEndpoint() on each provider actually receive the
+        // fields they read from.
+        const providerRequest: GenerationRequest = {
+          prompt: originalRequest.prompt,
+          type: originalRequest.type,
+          options: request.payload,
+          images: originalRequest.images,
+          video: originalRequest.video,
+        };
+
+        const response = await provider.generate(providerRequest);
 
         // Success - reset circuit breaker
         if (breaker) {
