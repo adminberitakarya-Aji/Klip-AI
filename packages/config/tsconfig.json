@@ -9,6 +9,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
+    "types": ["node"],
     "emitDeclarationOnly": false,
     "noEmit": false,
     "baseUrl": ".",

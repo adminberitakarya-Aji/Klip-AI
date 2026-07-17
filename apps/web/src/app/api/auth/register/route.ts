@@ -5,7 +5,8 @@ import { prisma } from '@klipai/db/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email: rawEmail, password } = body;
+    const email = typeof rawEmail === 'string' ? rawEmail.toLowerCase().trim() : rawEmail;
 
     if (!email || !password) {
       return NextResponse.json(

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getSessionUser } from '@/lib/session';
 import { generationService } from '@klipai/ai/services/generation-service';
 import { prisma } from '@klipai/db/client';
 
@@ -10,8 +10,8 @@ export async function GET(
   const { id } = await params;
   
   try {
-    const session = await auth();
-    if (!session || !session?.user?.id) {
+    const sessionUser = await getSessionUser(request);
+    if (!sessionUser?.id) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
@@ -19,7 +19,7 @@ export async function GET(
     }
 
     const generation = await prisma.generation.findUnique({ where: { id } });
-    if (!generation || generation.userId !== session.user.id) {
+    if (!generation || generation.userId !== sessionUser.id) {
       return NextResponse.json(
         { success: false, error: { code: 'NOT_FOUND', message: 'Generation not found' } },
         { status: 404 }

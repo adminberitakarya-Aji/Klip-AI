@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getSessionUser } from '@/lib/session';
 import { prisma } from '@klipai/db/client';
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const sessionUser = await getSessionUser(request);
+    if (!sessionUser?.id) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
         { status: 401 }
@@ -17,13 +17,13 @@ export async function GET(request: NextRequest) {
     const pageSize = Math.min(Math.max(1, parseInt(searchParams.get('pageSize') || '20')), 50); // Max 50 per page
 
     const result = await prisma.generation.findMany({
-      where: { userId: session.user.id },
+      where: { userId: sessionUser.id },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     });
 
-    const total = await prisma.generation.count({ where: { userId: session.user.id } });
+    const total = await prisma.generation.count({ where: { userId: sessionUser.id } });
 
     return NextResponse.json({
       success: true,

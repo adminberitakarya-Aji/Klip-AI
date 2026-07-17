@@ -1,0 +1,15 @@
+🔴 Bug baru yang cukup serius
+
+Generation record dobel di generate/[type]/route.ts. Route sekarang membuat generation di dalam prisma.$transaction(...) (untuk deduct kredit atomik — bagus), TAPI setelah transaksi selesai, route masih memanggil generationService.createGeneration(...) lagi, yang membuat baris generation kedua di DB dan menjalankan proses AI-nya di baris kedua itu. ID yang dikembalikan ke client adalah baris pertama (dari transaksi) yang tidak pernah diproses — jadi status akan macet selamanya di QUEUED, progress: 0. Sementara baris kedua yang benar-benar diproses ID-nya tidak pernah diketahui client.
+Env var wajib memutus apps/web. packages/config sekarang mewajibkan DATABASE_URL, NEXTAUTH_SECRET, AI_PROVIDER_API_KEY — tapi apps/web/.env.example cuma berisi NEXT_PUBLIC_APP_URL, NEXT_PUBLIC_API_URL, NEXTAUTH_URL. Masalahnya, route baru apps/web/src/app/api/auth/register/route.ts meng-import @klipai/db/client, yang meng-import @klipai/config — jadi begitu web app jalan tanpa var-var itu di .env-nya, envSchema.parse(process.env) langsung throw ZodError saat startup, mematikan seluruh app web, bukan cuma fitur register.
+NextAuth handler ada di app yang salah. Halaman signin/signup baru ditaruh di apps/web (port 3000), dan apps/web/.env.example set NEXTAUTH_URL="http://localhost:3000" — mengisyaratkan NextAuth jalan di app web. Tapi route handler [...nextauth]/route.ts hanya ada di apps/api (port 3001). Client helper signIn() di halaman signin mengirim request relatif ke origin halaman itu sendiri (port 3000) — yang tidak punya route NextAuth sama sekali. Login credentials akan selalu gagal (404) kecuali ada rewrite/proxy yang tidak ada di config manapun.
+Tombol OAuth Google/GitHub di halaman signin aktif tapi tidak dikonfigurasi. auth.ts cuma punya CredentialsProvider — tidak ada provider Google/GitHub terdaftar, jadi tombol ini akan error saat diklik.
+Husky v9 dengan syntax v8. package.json: "prepare": "husky install" dan isi .husky/pre-commit masih source _/husky.sh — keduanya pola Husky v8 lama. Husky v9 ("husky": "^9.0.0" yang dipasang) menghapus command install dan tidak lagi pakai shim _/husky.sh. pnpm install akan gagal di step prepare pada clone baru.
+CI job "Build" akan gagal. pnpm build di ci.yml jalan tanpa environment secrets apapun di-set — begitu Next.js build meng-compile kode yang import @klipai/config, parsing env yang sekarang wajib (DATABASE_URL, dll.) akan throw karena CI runner tidak set variabel-variabel itu.
+Job Docker di CI mereferensikan apps/api/Dockerfile dan apps/web/Dockerfile — kedua file ini tidak ada di repo (hanya contoh snippet di README).
+
+🟡 Isu lama yang masih belum tersentuh
+
+packages/ui masih perlu di-build (tsc) dulu sebelum dev, tapi turbo.json task dev tidak dependsOn: ["^build"] — clone baru + pnpm dev langsung masih berpotensi gagal resolve @klipai/ui/*.
+Register route (apps/web/api/auth/register) belum validasi email dengan Zod, belum normalisasi email (case-sensitivity bisa bikin akun duplikat), dan belum ada rate limiting.
+next.config.ts di web masih images.remotePatterns.hostname: '**' (buka untuk semua domain).
