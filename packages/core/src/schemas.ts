@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GenerationType, GenerationStatus } from './types';
+import { GenerationType, GenerationStatus, Role, Subscription } from './types';
 
 export const generationRequestSchema = z.object({
   prompt: z.string().min(1).max(4000),
@@ -10,7 +10,7 @@ export const generationRequestSchema = z.object({
 });
 
 export const generationResponseSchema = z.object({
-  id: z.string().uuid(),
+  id: z.string().cuid(), // Prisma uses cuid, not uuid
   status: z.nativeEnum(GenerationStatus),
   progress: z.number().min(0).max(100),
   resultUrl: z.string().url().optional(),
@@ -24,8 +24,8 @@ export const userSchema = z.object({
   email: z.string().email(),
   name: z.string().nullable(),
   image: z.string().url().nullable(),
-  role: z.enum(['user', 'admin']),
-  subscription: z.enum(['free', 'pro', 'umkm']),
+  role: z.nativeEnum(Role),
+  subscription: z.nativeEnum(Subscription),
   credits: z.number().int().nonnegative(),
   createdAt: z.date(),
   updatedAt: z.date(),

@@ -58,7 +58,7 @@ class GenerationService {
     };
   }
 
-  private async processGeneration(generationId: string, request: GenerationRequest) {
+  async processGeneration(generationId: string, request: GenerationRequest) {
     const provider = this.getProvider(request.type);
 
     try {
@@ -71,7 +71,7 @@ class GenerationService {
       // Call provider
       const result = await provider.generate(request);
 
-      // Update with result
+      // Update with result - save provider's external job ID to providerId field
       await prisma.generation.update({
         where: { id: generationId },
         data: {
@@ -79,6 +79,7 @@ class GenerationService {
           progress: 100,
           resultUrl: result.resultUrl,
           error: result.error,
+          providerId: result.id, // Save provider's external job ID
           completedAt: result.status === 'completed' ? new Date() : null,
         },
       });
@@ -115,10 +116,12 @@ class GenerationService {
     const generation = await prisma.generation.findUnique({ where: { id: generationId } });
     if (!generation) return null;
 
-    // If still processing, check with provider
+    // If still processing, check with provider using provider's external job ID
     if (generation.status === 'PROCESSING' || generation.status === 'QUEUED') {
       const provider = this.getProvider(generation.type as GenerationType);
-      const result = await provider.getStatus(generationId);
+      // Use providerId (external job ID) if available, otherwise fallback to internal ID
+      const providerJobId = generation.providerId || generationId;
+      const result = await provider.getStatus(providerJobId);
       
       const mappedStatus = result.status.toUpperCase() as 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'IDLE';
       if (mappedStatus !== generation.status) {

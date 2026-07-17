@@ -6,6 +6,9 @@
       "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {},
+    "type-check": {
+      "dependsOn": []
+    },
     "dev": {
       "cache": false,
       "persistent": true

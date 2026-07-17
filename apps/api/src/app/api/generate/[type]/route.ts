@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import getServerSession from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { generationService } from '@klipai/ai/services/generation-service';
 import { generationRequestSchema } from '@klipai/core/schemas';
 import { prisma } from '@klipai/db/client';
 import { GenerationType } from '@klipai/core/types';
+
+type TransactionClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
 const VALID_TYPES: GenerationType[] = [
   GenerationType.TEXT_TO_VIDEO,
@@ -29,7 +30,7 @@ export async function POST(
   }
 
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
@@ -46,29 +47,60 @@ export async function POST(
       );
     }
 
-    // Check user credits
-    const user = await prisma.user.findUnique({ where: { id: session.user.id } });
-    if (!user || user.credits <= 0) {
+    // Atomic credit check and decrement using a transaction
+    const result = await prisma.$transaction(async (tx: TransactionClient) => {
+      // Check and decrement credits atomically
+      const updatedUser = await tx.user.update({
+        where: { id: session.user.id, credits: { gt: 0 } },
+        data: { credits: { decrement: 1 } },
+        select: { credits: true },
+      });
+
+      if (!updatedUser) {
+        throw new Error('INSUFFICIENT_CREDITS');
+      }
+
+      // Create generation record
+      const generation = await tx.generation.create({
+        data: {
+          userId: session.user.id,
+          prompt: parsed.data.prompt,
+          type: (type as GenerationType).toUpperCase().replace(/-/g, '_') as any,
+          status: 'QUEUED',
+          options: parsed.data.options as any,
+          images: parsed.data.images || [],
+          video: parsed.data.video || null,
+        },
+      });
+
+      return { generationId: generation.id, credits: updatedUser.credits };
+    });
+
+    // Queue for async processing using the public createGeneration method
+    await generationService.createGeneration(session.user.id, {
+      ...parsed.data,
+      type: type as GenerationType,
+    });
+
+    return NextResponse.json({ 
+      success: true, 
+      data: { 
+        id: result.generationId, 
+        status: 'QUEUED', 
+        progress: 0, 
+        createdAt: Date.now() 
+      } 
+    });
+  } catch (error) {
+    console.error(`${type} error:`, error);
+    
+    if (error instanceof Error && error.message === 'INSUFFICIENT_CREDITS') {
       return NextResponse.json(
         { success: false, error: { code: 'INSUFFICIENT_CREDITS', message: 'Not enough credits' } },
         { status: 402 }
       );
     }
-
-    const result = await generationService.createGeneration(session.user.id, {
-      ...parsed.data,
-      type: type as GenerationType,
-    });
-
-    // Deduct credit
-    await prisma.user.update({ 
-      where: { id: session.user.id }, 
-      data: { credits: { decrement: 1 } } 
-    });
-
-    return NextResponse.json({ success: true, data: result });
-  } catch (error) {
-    console.error(`${type} error:`, error);
+    
     return NextResponse.json(
       { success: false, error: { code: 'INTERNAL_ERROR', message: 'Generation failed' } },
       { status: 500 }

@@ -37,21 +37,32 @@ export interface GenerationResponse {
   completedAt?: number;
 }
 
-// User Types
+// User Types - Match Prisma enums exactly (uppercase)
+export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+}
+
+export enum Subscription {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  UMKM = 'UMKM',
+}
+
 export interface User {
   id: string;
   email: string;
   name: string | null;
   image: string | null;
-  role: 'user' | 'admin';
-  subscription: 'free' | 'pro' | 'umkm';
+  role: Role;
+  subscription: Subscription;
   credits: number;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface SubscriptionPlan {
-  name: 'free' | 'pro' | 'umkm';
+  name: Subscription;
   price: number;
   creditsPerMonth: number;
   features: string[];

@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@klipai/tsconfig": "workspace:*",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "@types/node": "^20.12.0"
   }
 }

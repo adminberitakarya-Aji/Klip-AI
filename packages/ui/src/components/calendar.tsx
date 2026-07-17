@@ -7,6 +7,10 @@ import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 
+type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
+};
+
 function Calendar({
   className,
   classNames,
@@ -16,9 +20,7 @@ function Calendar({
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"];
-}) {
+}: CalendarProps) {
   const defaultClassNames = getDefaultClassNames();
 
   return (
@@ -103,33 +105,36 @@ function Calendar({
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
-      components={{
-        Root: ({ className, rootRef, ...props }) => {
-          return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />;
-        },
-        Chevron: ({ className, orientation, ...props }) => {
-          if (orientation === "left") {
-            return <ChevronLeftIcon className={cn("size-4", className)} {...props} />;
-          }
+        components={{
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Root: ({ className, rootRef, ...props }: any) => {
+            return <div data-slot="calendar" ref={rootRef} className={cn(className)} {...props} />;
+          },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Chevron: ({ className, orientation, ...props }: any) => {
+            if (orientation === "left") {
+              return <ChevronLeftIcon className={cn("size-4", className)} {...props} />;
+            }
 
-          if (orientation === "right") {
-            return <ChevronRightIcon className={cn("size-4", className)} {...props} />;
-          }
+            if (orientation === "right") {
+              return <ChevronRightIcon className={cn("size-4", className)} {...props} />;
+            }
 
-          return <ChevronDownIcon className={cn("size-4", className)} {...props} />;
-        },
-        DayButton: CalendarDayButton,
-        WeekNumber: ({ children, ...props }) => {
-          return (
-            <td {...props}>
-              <div className="flex size-(--cell-size) items-center justify-center text-center">
-                {children}
-              </div>
-            </td>
-          );
-        },
-        ...components,
-      }}
+            return <ChevronDownIcon className={cn("size-4", className)} {...props} />;
+          },
+          DayButton: CalendarDayButton,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          WeekNumber: ({ children, ...props }: any) => {
+            return (
+              <td {...props}>
+                <div className="flex size-(--cell-size) items-center justify-center text-center">
+                  {children as React.ReactNode}
+                </div>
+              </td>
+            );
+          },
+          ...components,
+        }}
       {...props}
     />
   );
@@ -147,6 +152,10 @@ function CalendarDayButton({
   React.useEffect(() => {
     if (modifiers.focused) ref.current?.focus();
   }, [modifiers.focused]);
+
+  // Omit formAction and other form-specific props that Button doesn't support
+  // Also handle React 19 ReactNode type issue with children
+  const { formAction, form, formEncType, formMethod, formNoValidate, formTarget, children, ...buttonProps } = props;
 
   return (
     <Button
@@ -168,8 +177,10 @@ function CalendarDayButton({
         defaultClassNames.day,
         className,
       )}
-      {...props}
-    />
+      {...buttonProps}
+    >
+      {children as React.ReactNode}
+    </Button>
   );
 }
 

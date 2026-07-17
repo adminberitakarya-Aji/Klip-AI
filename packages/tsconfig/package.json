@@ -5,9 +5,6 @@
   "files": [
     "*.json"
   ],
-  "scripts": {
-    "type-check": "tsc --noEmit"
-  },
   "devDependencies": {
     "typescript": "^5.5.0"
   }
