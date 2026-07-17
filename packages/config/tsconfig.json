@@ -11,12 +11,7 @@
     "lib": ["ES2022"],
     "types": ["node"],
     "emitDeclarationOnly": false,
-    "noEmit": false,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@klipai/config/*": ["src/*"]
-    }
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

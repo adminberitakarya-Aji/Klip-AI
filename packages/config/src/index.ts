@@ -1,6 +1,6 @@
 /// <reference types="node" />
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * NOTE ON "REQUIRED" FIELDS:
@@ -31,9 +31,23 @@ const envSchema = z.object({
   AI_PROVIDER_API_KEY: z.string().min(1).optional(),
   AI_PROVIDER_BASE_URL: z.string().url().optional(),
 
+  // Seedance
+  SEEDANCE_API_KEY: z.string().min(1).optional(),
+  SEEDANCE_BASE_URL: z.string().url().optional(),
+
+  // Kling
+  KLING_API_KEY: z.string().min(1).optional(),
+  KLING_BASE_URL: z.string().url().optional(),
+
+  // Wan
+  WAN_API_KEY: z.string().min(1).optional(),
+  WAN_BASE_URL: z.string().url().optional(),
+
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
 
   // Optional
   STRIPE_SECRET_KEY: z.string().optional(),
@@ -47,8 +61,13 @@ if (!parsed.success) {
   // Only format-level checks (e.g. NEXTAUTH_SECRET must be 32+ chars if set,
   // *_URL must be a valid URL if set) can fail here, since nothing is
   // required. Fail loudly either way since it means an env var is malformed.
-  console.error('[@klipai/config] Invalid environment variables:', parsed.error.flatten().fieldErrors);
-  throw new Error('Invalid environment variables. Check the console output above for details.');
+  console.error(
+    "[@klipai/config] Invalid environment variables:",
+    parsed.error.flatten().fieldErrors,
+  );
+  throw new Error(
+    "Invalid environment variables. Check the console output above for details.",
+  );
 }
 
 export const env = parsed.data;
@@ -67,13 +86,13 @@ export type Env = z.infer<typeof envSchema>;
 export function requireEnv<K extends keyof Env>(keys: K[]): void {
   const missing = keys.filter((key) => {
     const value = env[key];
-    return value === undefined || value === '';
+    return value === undefined || value === "";
   });
 
   if (missing.length > 0) {
     throw new Error(
-      `Missing required environment variable(s): ${missing.join(', ')}. ` +
-      `Check your .env file against .env.example.`
+      `Missing required environment variable(s): ${missing.join(", ")}. ` +
+        `Check your .env file against .env.example.`,
     );
   }
 }

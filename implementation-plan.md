@@ -59,7 +59,7 @@ Brief User → CLAUDE ORCHESTRATOR (Prompt Enhancer) → Provider Router (fallba
 
 ---
 
-### 9.1 Restructure Providers (Breaking Change - Hapus 6 files lama)
+### 9.1 Restructure Providers (Breaking Change - Hapus 6 files lama) ✅ **DONE**
 
 **Hapus files lama** (type-based, salah arsitektur):
 
@@ -86,7 +86,7 @@ packages/ai/src/providers/
 
 ---
 
-### 9.2 Pipeline Types & Interfaces
+### 9.2 Pipeline Types & Interfaces ✅ **DONE**
 
 **File**: `packages/ai/src/pipeline/types.ts`
 
@@ -194,7 +194,7 @@ export interface ProviderCapabilities {
 
 ---
 
-### 9.3 Claude Prompt Enhancer (ORCHESTRATOR - PALING CRITICAL)
+### 9.3 Claude Prompt Enhancer (ORCHESTRATOR - PALING CRITICAL) ✅ **DONE**
 
 **File**: `packages/ai/src/services/prompt-enhancer.ts`
 
@@ -260,7 +260,7 @@ class PromptEnhancer {
 
 ---
 
-### 9.4 Provider Router (Fallback Chain)
+### 9.4 Provider Router (Fallback Chain) ✅ **DONE**
 
 **File**: `packages/ai/src/services/provider-router.ts`
 
@@ -338,7 +338,7 @@ class ProviderRouter {
 
 ---
 
-### 9.5 Concrete Providers (Seedance, Kling, Wan)
+### 9.5 Concrete Providers (Seedance, Kling, Wan) ✅ **DONE**
 
 **Files**:
 
@@ -362,9 +362,9 @@ interface AIProvider {
 
 ---
 
-### 9.6 Pipeline Orchestrator
+### 9.6 Pipeline Orchestrator ⏳ **NOT DONE**
 
-**File**: `packages/ai/src/services/pipeline-orchestrator.ts`
+**File**: `packages/ai/src/services/pipeline-orchestrator.ts` - **NEEDS CREATION**
 
 ```typescript
 interface PipelineContext {
@@ -426,7 +426,7 @@ class PipelineOrchestrator {
 
 ---
 
-### 9.7 Integrate ke GenerationService
+### 9.7 Integrate ke GenerationService ⏳ **PARTIALLY DONE**
 
 **Update**: `packages/ai/src/services/generation-service.ts`
 
@@ -448,7 +448,7 @@ async processGeneration(generationId: string, request: GenerationRequest) {
 
 ---
 
-### 9.8 Tests & Validation
+### 9.8 Tests & Validation ⏳ **NOT DONE**
 
 **Files**: `packages/ai/__tests__/`
 
@@ -573,9 +573,9 @@ async processGeneration(generationId: string, request: GenerationRequest) {
 
 1. **DB Setup** → `docker run postgres` + `pnpm db:generate && pnpm db:push`
 2. **Dev Test** → `pnpm dev` → test full flow
-3. **Phase 9.1-9.3** → Types, Prompt Enhancer, Provider Router
-4. **Phase 9.4-9.6** → Seedance, Kling, Wan providers
-5. **Phase 9.7-9.8** → Orchestrator + integrate
+3. **Phase 9.6** → Pipeline Orchestrator creation
+4. **Phase 9.7** → Integrate orchestrator ke GenerationService
+5. **Phase 9.8** → Tests & validation
 6. **Phase 10** → Monitoring, docs, deploy
 7. **Phase 11** → Advanced AI (consistency, motion brush, upscaler, audio)
 8. **Phase 12** → Platform (templates, visual builder, team, API, billing)

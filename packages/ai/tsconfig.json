@@ -11,12 +11,7 @@
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "ESNext"],
     "emitDeclarationOnly": false,
-    "noEmit": false,
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@klipai/ai/*": ["src/*"]
-    }
+    "noEmit": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

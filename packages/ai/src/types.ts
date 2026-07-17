@@ -1,11 +1,21 @@
-import { GenerationType, GenerationRequest, GenerationResponse, GenerationStatus } from '@klipai/core/types';
+import {
+  GenerationType,
+  GenerationRequest,
+  GenerationResponse,
+  GenerationStatus,
+} from "@klipai/core/types";
 
 export { GenerationType, GenerationStatus };
-export type { GenerationRequest, GenerationResponse } from '@klipai/core/types';
-import { env } from '@klipai/config';
+export type { GenerationRequest, GenerationResponse } from "@klipai/core/types";
+import { env } from "@klipai/config";
+
+export type { ProviderCapabilities } from "./pipeline/types";
+
+import { ProviderCapabilities } from "./pipeline/types";
 
 export interface AIProvider {
-  name: string;
+  name: "seedance" | "kling" | "wan";
+  capabilities: ProviderCapabilities;
   generate(request: GenerationRequest): Promise<GenerationResponse>;
   getStatus(id: string): Promise<GenerationResponse>;
   cancel(id: string): Promise<void>;
@@ -20,16 +30,16 @@ export interface ProviderConfig {
 
 export interface TextToVideoOptions {
   duration?: 6 | 12;
-  aspectRatio?: '9:16' | '16:9' | '1:1';
-  resolution?: '720p' | '1080p' | '4k';
+  aspectRatio?: "9:16" | "16:9" | "1:1";
+  resolution?: "720p" | "1080p" | "4k";
   fps?: 24 | 30;
-  cameraMotion?: 'static' | 'pan' | 'zoom' | 'orbit';
+  cameraMotion?: "static" | "pan" | "zoom" | "orbit";
   seed?: number;
 }
 
 export interface ImageToVideoOptions {
   motionStrength?: number;
-  cameraMotion?: 'static' | 'pan' | 'zoom';
+  cameraMotion?: "static" | "pan" | "zoom";
   duration?: 6 | 12;
 }
 
@@ -40,8 +50,8 @@ export interface VideoToVideoOptions {
 }
 
 export interface TextToImageOptions {
-  aspectRatio?: '9:16' | '16:9' | '1:1' | '4:3' | '3:4';
-  resolution?: '512' | '768' | '1024' | '2048';
+  aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
+  resolution?: "512" | "768" | "1024" | "2048";
   style?: string;
   negativePrompt?: string;
 }
@@ -53,6 +63,10 @@ export interface ImageToImageOptions {
 }
 
 export interface MotionControlOptions {
-  trajectory?: 'linear' | 'circular' | 'spiral' | 'custom';
-  keyframes?: Array<{ time: number; position: [number, number, number]; rotation: [number, number, number] }>;
+  trajectory?: "linear" | "circular" | "spiral" | "custom";
+  keyframes?: Array<{
+    time: number;
+    position: [number, number, number];
+    rotation: [number, number, number];
+  }>;
 }

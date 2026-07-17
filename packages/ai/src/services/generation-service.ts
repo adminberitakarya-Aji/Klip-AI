@@ -1,148 +1,183 @@
-import { prisma } from '@klipai/db/client';
-import { GenerationType, GenerationStatus, GenerationRequest, GenerationResponse } from '@klipai/core/types';
-import { AIProvider } from '../types';
-import { TextToVideoProvider } from '../providers/text-to-video';
-import { ImageToVideoProvider } from '../providers/image-to-video';
-import { VideoToVideoProvider } from '../providers/video-to-video';
-import { TextToImageProvider } from '../providers/text-to-image';
-import { ImageToImageProvider } from '../providers/image-to-image';
-import { MotionControlProvider } from '../providers/motion-control';
+import {
+  PromptEnhancerInput,
+  EnhancedGenerationRequest,
+  ProviderResponse,
+  PipelineContext,
+  GenerationType,
+} from "../pipeline/types";
+import { PromptEnhancer } from "./prompt-enhancer";
+import { providerRouter } from "./provider-router";
+import { initializeProviders } from "../providers";
+import {
+  GenerationRequest,
+  GenerationResponse,
+  GenerationStatus,
+} from "../types";
 
-class GenerationService {
-  private providers: Map<GenerationType, AIProvider> = new Map();
+interface GenerationJob {
+  id: string;
+  brief: string;
+  type: GenerationType;
+  images?: string[];
+  video?: string;
+  userPreferences?: {
+    style?: "cinematic" | "commercial" | "social" | "artistic";
+    duration?: number;
+    aspectRatio?: string;
+  };
+  status: GenerationStatus;
+  progress: number;
+  resultUrl?: string;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export class GenerationService {
+  private promptEnhancer: PromptEnhancer;
+  private jobs: Map<string, GenerationJob> = new Map();
 
   constructor() {
-    this.initializeProviders();
+    this.promptEnhancer = new PromptEnhancer();
+    initializeProviders();
   }
 
-  private initializeProviders() {
-    const apiKey = process.env.AI_PROVIDER_API_KEY || '';
-    const baseUrl = process.env.AI_PROVIDER_BASE_URL || '';
-
-    this.providers.set(GenerationType.TEXT_TO_VIDEO, new TextToVideoProvider({ apiKey, baseUrl }));
-    this.providers.set(GenerationType.IMAGE_TO_VIDEO, new ImageToVideoProvider({ apiKey, baseUrl }));
-    this.providers.set(GenerationType.VIDEO_TO_VIDEO, new VideoToVideoProvider({ apiKey, baseUrl }));
-    this.providers.set(GenerationType.TEXT_TO_IMAGE, new TextToImageProvider({ apiKey, baseUrl }));
-    this.providers.set(GenerationType.IMAGE_TO_IMAGE, new ImageToImageProvider({ apiKey, baseUrl }));
-    this.providers.set(GenerationType.MOTION_CONTROL, new MotionControlProvider({ apiKey, baseUrl }));
-  }
-
-  private getProvider(type: GenerationType): AIProvider {
-    const provider = this.providers.get(type);
-    if (!provider) throw new Error(`Provider not found for type: ${type}`);
-    return provider;
-  }
-
-  async createGeneration(userId: string, request: GenerationRequest): Promise<GenerationResponse> {
-    // Create DB record
-    const generation = await prisma.generation.create({
-      data: {
-        userId,
-        prompt: request.prompt,
-        type: request.type.toUpperCase().replace(/-/g, '_') as any,
-        status: 'QUEUED',
-        options: request.options as any,
-        images: request.images || [],
-        video: request.video || null,
-      },
-    });
-
-    // Queue for processing (in production, use a job queue like BullMQ)
-    this.processGeneration(generation.id, request).catch(console.error);
-
-    return {
-      id: generation.id,
+  async generate(input: PromptEnhancerInput): Promise<GenerationJob> {
+    // Create job record
+    const jobId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const job: GenerationJob = {
+      id: jobId,
+      brief: input.brief,
+      type: input.type,
+      images: input.images,
+      video: input.video,
+      userPreferences: input.userPreferences,
       status: GenerationStatus.QUEUED,
       progress: 0,
-      createdAt: generation.createdAt.getTime(),
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
+    this.jobs.set(jobId, job);
+
+    // Process asynchronously
+    this.processGeneration(jobId, input).catch((error) => {
+      this.updateJob(jobId, {
+        status: GenerationStatus.FAILED,
+        error: error.message,
+        updatedAt: Date.now(),
+      });
+    });
+
+    return job;
   }
 
-  async processGeneration(generationId: string, request: GenerationRequest) {
-    const provider = this.getProvider(request.type);
+  private async processGeneration(
+    jobId: string,
+    input: PromptEnhancerInput,
+  ): Promise<void> {
+    this.updateJob(jobId, {
+      status: GenerationStatus.PROCESSING,
+      progress: 10,
+      updatedAt: Date.now(),
+    });
 
     try {
-      // Update status to processing
-      await prisma.generation.update({
-        where: { id: generationId },
-        data: { status: 'PROCESSING', progress: 10 },
-      });
+      // Step 1: Enhance prompt with Claude
+      this.updateJob(jobId, { progress: 20, updatedAt: Date.now() });
+      const enhanced = await this.promptEnhancer.enhance(input);
 
-      // Call provider
-      const result = await provider.generate(request);
+      // Step 2: Route to provider and generate
+      this.updateJob(jobId, { progress: 40, updatedAt: Date.now() });
+      const response = await providerRouter.generate(enhanced);
 
-      // Update with result - save provider's external job ID to providerId field
-      await prisma.generation.update({
-        where: { id: generationId },
-        data: {
-          status: result.status === 'completed' ? 'COMPLETED' : 'FAILED',
-          progress: 100,
-          resultUrl: result.resultUrl,
-          error: result.error,
-          providerId: result.id, // Save provider's external job ID
-          completedAt: result.status === 'completed' ? new Date() : null,
-        },
+      // Step 3: Poll for completion
+      this.updateJob(jobId, { progress: 60, updatedAt: Date.now() });
+      const completed = await providerRouter.waitForCompletion(
+        enhanced.metadata.recommendedProvider,
+        response.id,
+        300000, // 5 minutes
+      );
+
+      this.updateJob(jobId, {
+        status:
+          completed.status === "completed"
+            ? GenerationStatus.COMPLETED
+            : GenerationStatus.FAILED,
+        progress: 100,
+        resultUrl: completed.resultUrl,
+        error: completed.error,
+        updatedAt: Date.now(),
       });
     } catch (error) {
-      await prisma.generation.update({
-        where: { id: generationId },
-        data: {
-          status: 'FAILED',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
+      this.updateJob(jobId, {
+        status: GenerationStatus.FAILED,
+        error: error instanceof Error ? error.message : "Generation failed",
+        updatedAt: Date.now(),
       });
     }
   }
 
-  async getGeneration(id: string) {
-    return prisma.generation.findUnique({ where: { id } });
+  private updateJob(jobId: string, updates: Partial<GenerationJob>): void {
+    const job = this.jobs.get(jobId);
+    if (job) {
+      this.jobs.set(jobId, { ...job, ...updates });
+    }
   }
 
-  async getUserGenerations(userId: string, page = 1, pageSize = 20) {
-    const [items, total] = await Promise.all([
-      prisma.generation.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.generation.count({ where: { userId } }),
-    ]);
-
-    return { items, total, page, pageSize, hasMore: total > page * pageSize };
+  getJob(id: string): GenerationJob | undefined {
+    return this.jobs.get(id);
   }
 
-  async checkStatus(generationId: string): Promise<GenerationResponse | null> {
-    const generation = await prisma.generation.findUnique({ where: { id: generationId } });
-    if (!generation) return null;
+  getAllJobs(): GenerationJob[] {
+    return Array.from(this.jobs.values()).sort(
+      (a, b) => b.createdAt - a.createdAt,
+    );
+  }
 
-    // If still processing, check with provider using provider's external job ID
-    if (generation.status === 'PROCESSING' || generation.status === 'QUEUED') {
-      const provider = this.getProvider(generation.type as GenerationType);
-      // Use providerId (external job ID) if available, otherwise fallback to internal ID
-      const providerJobId = generation.providerId || generationId;
-      const result = await provider.getStatus(providerJobId);
-      
-      const mappedStatus = result.status.toUpperCase() as 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'IDLE';
-      if (mappedStatus !== generation.status) {
-        await prisma.generation.update({
-          where: { id: generationId },
-          data: { status: mappedStatus, progress: result.progress, resultUrl: result.resultUrl },
-        });
-      }
-      return result;
+  async getJobStatus(id: string): Promise<GenerationJob | null> {
+    const job = this.jobs.get(id);
+    if (!job) return null;
+
+    // If still processing, check provider status
+    if (job.status === GenerationStatus.PROCESSING && job.resultUrl) {
+      // Could poll provider here for real-time progress
+    }
+    return job;
+  }
+
+  async cancelJob(id: string): Promise<boolean> {
+    const job = this.jobs.get(id);
+    if (!job || job.status !== GenerationStatus.PROCESSING) {
+      return false;
     }
 
-    return {
-      id: generation.id,
-      status: generation.status.toLowerCase() as GenerationStatus,
-      progress: generation.progress,
-      resultUrl: generation.resultUrl || undefined,
-      error: generation.error || undefined,
-      createdAt: generation.createdAt.getTime(),
-      completedAt: generation.completedAt?.getTime(),
-    };
+    // Would need to track provider job ID to cancel
+    // For now, mark as cancelled
+    this.updateJob(id, {
+      status: GenerationStatus.FAILED,
+      error: "Cancelled by user",
+      updatedAt: Date.now(),
+    });
+    return true;
   }
 }
 
+// Export singleton instance
 export const generationService = new GenerationService();
+
+// Also export a function to use the pipeline directly
+export async function generateFromBrief(
+  input: PromptEnhancerInput,
+): Promise<GenerationJob> {
+  return generationService.generate(input);
+}
+
+export async function enhancePromptOnly(
+  input: PromptEnhancerInput,
+): Promise<EnhancedGenerationRequest> {
+  const enhancer = new PromptEnhancer();
+  return enhancer.enhance(input);
+}
+
+export { providerRouter } from "./provider-router";
+export { PromptEnhancer } from "./prompt-enhancer";
