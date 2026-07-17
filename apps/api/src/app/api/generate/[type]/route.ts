@@ -1,11 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSessionUser } from '@/lib/session';
-import { generationService } from '@klipai/ai/services/generation-service';
-import { generationRequestSchema } from '@klipai/core/schemas';
-import { prisma } from '@klipai/db/client';
-import { GenerationType } from '@klipai/core/types';
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionUser } from "@/lib/session";
+import { generationService } from "@klipai/ai/services/generation-service";
+import { generationRequestSchema } from "@klipai/core/schemas";
+import { prisma } from "@klipai/db/client";
+import { GenerationType } from "@klipai/core/types";
 
-type TransactionClient = Omit<typeof prisma, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+type TransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
 
 const VALID_TYPES: GenerationType[] = [
   GenerationType.TEXT_TO_VIDEO,
@@ -18,14 +21,17 @@ const VALID_TYPES: GenerationType[] = [
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ type: string }> }
+  { params }: { params: Promise<{ type: string }> },
 ) {
   const { type } = await params;
 
   if (!VALID_TYPES.includes(type as GenerationType)) {
     return NextResponse.json(
-      { success: false, error: { code: 'INVALID_TYPE', message: 'Invalid generation type' } },
-      { status: 400 }
+      {
+        success: false,
+        error: { code: "INVALID_TYPE", message: "Invalid generation type" },
+      },
+      { status: 400 },
     );
   }
 
@@ -33,8 +39,11 @@ export async function POST(
     const sessionUser = await getSessionUser(request);
     if (!sessionUser?.id) {
       return NextResponse.json(
-        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
-        { status: 401 }
+        {
+          success: false,
+          error: { code: "UNAUTHORIZED", message: "Authentication required" },
+        },
+        { status: 401 },
       );
     }
 
@@ -42,8 +51,11 @@ export async function POST(
     const parsed = generationRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: parsed.error.message } },
-        { status: 400 }
+        {
+          success: false,
+          error: { code: "VALIDATION_ERROR", message: parsed.error.message },
+        },
+        { status: 400 },
       );
     }
 
@@ -57,7 +69,7 @@ export async function POST(
       });
 
       if (!updatedUser) {
-        throw new Error('INSUFFICIENT_CREDITS');
+        throw new Error("INSUFFICIENT_CREDITS");
       }
 
       // Create generation record
@@ -65,8 +77,10 @@ export async function POST(
         data: {
           userId: sessionUser.id,
           prompt: parsed.data.prompt,
-          type: (type as GenerationType).toUpperCase().replace(/-/g, '_') as any,
-          status: 'QUEUED',
+          type: (type as GenerationType)
+            .toUpperCase()
+            .replace(/-/g, "_") as any,
+          status: "QUEUED",
           options: parsed.data.options as any,
           images: parsed.data.images || [],
           video: parsed.data.video || null,
@@ -77,16 +91,21 @@ export async function POST(
     });
 
     // Queue for async processing using the generation that was already created in the transaction
-    generationService.processGeneration(result.generationId, {
-      ...parsed.data,
-      type: type as GenerationType,
-    }).catch(console.error);
+    generationService
+      .processGeneration(result.generationId, {
+        brief: parsed.data.prompt,
+        type: type as GenerationType,
+        images: parsed.data.images,
+        video: parsed.data.video,
+        userPreferences: parsed.data.options as any,
+      })
+      .catch(console.error);
 
     return NextResponse.json({
       success: true,
       data: {
         id: result.generationId,
-        status: 'QUEUED',
+        status: "QUEUED",
         progress: 0,
         createdAt: Date.now(),
       },
@@ -94,16 +113,25 @@ export async function POST(
   } catch (error) {
     console.error(`${type} error:`, error);
 
-    if (error instanceof Error && error.message === 'INSUFFICIENT_CREDITS') {
+    if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
       return NextResponse.json(
-        { success: false, error: { code: 'INSUFFICIENT_CREDITS', message: 'Not enough credits' } },
-        { status: 402 }
+        {
+          success: false,
+          error: {
+            code: "INSUFFICIENT_CREDITS",
+            message: "Not enough credits",
+          },
+        },
+        { status: 402 },
       );
     }
 
     return NextResponse.json(
-      { success: false, error: { code: 'INTERNAL_ERROR', message: 'Generation failed' } },
-      { status: 500 }
+      {
+        success: false,
+        error: { code: "INTERNAL_ERROR", message: "Generation failed" },
+      },
+      { status: 500 },
     );
   }
 }

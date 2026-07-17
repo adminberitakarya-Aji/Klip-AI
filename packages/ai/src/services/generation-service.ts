@@ -13,8 +13,9 @@ import {
   GenerationResponse,
   GenerationStatus,
 } from "../types";
+import { prisma } from "@klipai/db/client";
 
-interface GenerationJob {
+export interface GenerationJob {
   id: string;
   brief: string;
   type: GenerationType;
@@ -65,17 +66,32 @@ export class GenerationService {
         status: GenerationStatus.FAILED,
         error: error.message,
         updatedAt: Date.now(),
-      });
+      }).catch(console.error);
     });
 
     return job;
   }
 
-  private async processGeneration(
+  public async processGeneration(
     jobId: string,
     input: PromptEnhancerInput,
   ): Promise<void> {
-    this.updateJob(jobId, {
+    if (!this.jobs.has(jobId)) {
+      this.jobs.set(jobId, {
+        id: jobId,
+        brief: input.brief,
+        type: input.type,
+        images: input.images,
+        video: input.video,
+        userPreferences: input.userPreferences,
+        status: GenerationStatus.QUEUED,
+        progress: 0,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+
+    await this.updateJob(jobId, {
       status: GenerationStatus.PROCESSING,
       progress: 10,
       updatedAt: Date.now(),
@@ -83,22 +99,22 @@ export class GenerationService {
 
     try {
       // Step 1: Enhance prompt with Claude
-      this.updateJob(jobId, { progress: 20, updatedAt: Date.now() });
+      await this.updateJob(jobId, { progress: 20, updatedAt: Date.now() });
       const enhanced = await this.promptEnhancer.enhance(input);
 
       // Step 2: Route to provider and generate
-      this.updateJob(jobId, { progress: 40, updatedAt: Date.now() });
+      await this.updateJob(jobId, { progress: 40, updatedAt: Date.now() });
       const response = await providerRouter.generate(enhanced);
 
       // Step 3: Poll for completion
-      this.updateJob(jobId, { progress: 60, updatedAt: Date.now() });
+      await this.updateJob(jobId, { progress: 60, updatedAt: Date.now() });
       const completed = await providerRouter.waitForCompletion(
         enhanced.metadata.recommendedProvider,
         response.id,
         300000, // 5 minutes
       );
 
-      this.updateJob(jobId, {
+      await this.updateJob(jobId, {
         status:
           completed.status === "completed"
             ? GenerationStatus.COMPLETED
@@ -109,7 +125,7 @@ export class GenerationService {
         updatedAt: Date.now(),
       });
     } catch (error) {
-      this.updateJob(jobId, {
+      await this.updateJob(jobId, {
         status: GenerationStatus.FAILED,
         error: error instanceof Error ? error.message : "Generation failed",
         updatedAt: Date.now(),
@@ -117,10 +133,40 @@ export class GenerationService {
     }
   }
 
-  private updateJob(jobId: string, updates: Partial<GenerationJob>): void {
+  private async updateJob(
+    jobId: string,
+    updates: Partial<GenerationJob>,
+  ): Promise<void> {
     const job = this.jobs.get(jobId);
     if (job) {
       this.jobs.set(jobId, { ...job, ...updates });
+    }
+
+    // Map properties for DB update
+    const dbUpdates: any = {};
+    if (updates.status) {
+      dbUpdates.status = updates.status.toUpperCase();
+    }
+    if (updates.progress !== undefined) {
+      dbUpdates.progress = updates.progress;
+    }
+    if (updates.resultUrl !== undefined) {
+      dbUpdates.resultUrl = updates.resultUrl;
+    }
+    if (updates.error !== undefined) {
+      dbUpdates.error = updates.error;
+    }
+    if (updates.status === GenerationStatus.COMPLETED) {
+      dbUpdates.completedAt = new Date();
+    }
+
+    try {
+      await prisma.generation.update({
+        where: { id: jobId },
+        data: dbUpdates,
+      });
+    } catch (error) {
+      console.error(`Failed to update database for job ${jobId}:`, error);
     }
   }
 
@@ -134,15 +180,40 @@ export class GenerationService {
     );
   }
 
-  async getJobStatus(id: string): Promise<GenerationJob | null> {
+  async checkStatus(id: string): Promise<GenerationJob | null> {
+    // 1. Check in-memory jobs first
     const job = this.jobs.get(id);
-    if (!job) return null;
-
-    // If still processing, check provider status
-    if (job.status === GenerationStatus.PROCESSING && job.resultUrl) {
-      // Could poll provider here for real-time progress
+    if (job) {
+      return job;
     }
-    return job;
+
+    // 2. Fallback to database
+    try {
+      const dbJob = await prisma.generation.findUnique({ where: { id } });
+      if (!dbJob) return null;
+
+      // Map DB schema to GenerationJob / API response status format
+      return {
+        id: dbJob.id,
+        brief: dbJob.prompt,
+        type: dbJob.type.toLowerCase().replace(/_/g, "-") as GenerationType,
+        images: dbJob.images,
+        video: dbJob.video || undefined,
+        status: dbJob.status.toLowerCase() as GenerationStatus,
+        progress: dbJob.progress,
+        resultUrl: dbJob.resultUrl || undefined,
+        error: dbJob.error || undefined,
+        createdAt: dbJob.createdAt.getTime(),
+        updatedAt: dbJob.updatedAt.getTime(),
+      };
+    } catch (error) {
+      console.error(`Failed to fetch status for job ${id}:`, error);
+      return null;
+    }
+  }
+
+  async getJobStatus(id: string): Promise<GenerationJob | null> {
+    return this.checkStatus(id);
   }
 
   async cancelJob(id: string): Promise<boolean> {
@@ -153,7 +224,7 @@ export class GenerationService {
 
     // Would need to track provider job ID to cancel
     // For now, mark as cancelled
-    this.updateJob(id, {
+    await this.updateJob(id, {
       status: GenerationStatus.FAILED,
       error: "Cancelled by user",
       updatedAt: Date.now(),
