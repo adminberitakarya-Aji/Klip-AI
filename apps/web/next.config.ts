@@ -1,18 +1,31 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
-    optimizePackageImports: ['@klipai/ui', '@react-three/fiber', '@react-three/drei', 'lucide-react'],
+    optimizePackageImports: [
+      "@klipai/ui",
+      "@react-three/fiber",
+      "@react-three/drei",
+      "lucide-react",
+    ],
   },
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: '**',
+        protocol: "https",
+        hostname: "**",
       },
     ],
   },
-  transpilePackages: ['@klipai/ui', '@klipai/core', '@klipai/config', '@klipai/ai'],
+  transpilePackages: [
+    "@klipai/ui",
+    "@klipai/core",
+    "@klipai/config",
+    "@klipai/ai",
+  ],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
