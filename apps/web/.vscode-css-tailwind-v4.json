@@ -1,0 +1,60 @@
+{
+  "atDirectives": [
+    {
+      "name": "@tailwind",
+      "description": "Tailwind: insert base, components, or utilities styles."
+    },
+    {
+      "name": "@apply",
+      "description": "Tailwind: inline utility classes into custom CSS."
+    },
+    {
+      "name": "@layer",
+      "description": "Tailwind: control cascade order of custom styles."
+    },
+    {
+      "name": "@variants",
+      "description": "Tailwind (deprecated): use variants directly."
+    },
+    {
+      "name": "@responsive",
+      "description": "Tailwind (deprecated): use @screen instead."
+    },
+    {
+      "name": "@screen",
+      "description": "Tailwind: create media queries by breakpoint name."
+    },
+    {
+      "name": "@source",
+      "description": "Tailwind v4: add source paths to detect class names."
+    },
+    {
+      "name": "@custom-variant",
+      "description": "Tailwind v4: register a custom variant."
+    },
+    {
+      "name": "@theme",
+      "description": "Tailwind v4: configure design tokens (colors, fonts, breakpoints)."
+    },
+    {
+      "name": "@theme inline",
+      "description": "Tailwind v4: configure design tokens without inlining into utilities."
+    },
+    {
+      "name": "@utility",
+      "description": "Tailwind v4: add a custom utility to the project."
+    },
+    {
+      "name": "@plugin",
+      "description": "Tailwind v4: load a Tailwind plugin."
+    },
+    {
+      "name": "@config",
+      "description": "Tailwind v4: load a legacy JavaScript-based config file."
+    },
+    {
+      "name": "@variant",
+      "description": "Tailwind v4: apply a variant to a set of custom styles."
+    }
+  ]
+}

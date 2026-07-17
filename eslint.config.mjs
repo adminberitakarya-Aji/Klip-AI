@@ -1,6 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import nextPlugin from '@next/eslint-plugin-next';
+import reactHooksPlugin from 'eslint-plugin-react-hooks';
 
 export default [
   { ignores: ['**/node_modules/', '**/.next/', '**/.turbo/', '**/dist/', '**/*.config.*', '**/*.config.ts', 'pnpm-lock.yaml'] },
@@ -10,6 +11,7 @@ export default [
     files: ['**/*.{ts,tsx,js,jsx}'],
     plugins: {
       '@next/next': nextPlugin,
+      'react-hooks': reactHooksPlugin,
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,

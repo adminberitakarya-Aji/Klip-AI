@@ -1,4 +1,10 @@
-export { CanvasProvider } from './CanvasProvider';
-export { Stars } from './objects/Stars';
-export { Float } from './objects/Float';
-export { AuroraOrbs } from './objects/AuroraOrbs';
+export { CanvasProvider } from "./CanvasProvider";
+export { Stars } from "./objects/Stars";
+export { Float } from "./objects/Float";
+export { AuroraOrbs } from "./objects/AuroraOrbs";
+export { GalleryItem } from "./objects/GalleryItem";
+export type { GalleryItemData } from "./objects/GalleryItem";
+export { ImageGallery } from "./objects/ImageGallery";
+export { HeroScene } from "./HeroScene";
+export { FeatureCard3D } from "./FeatureCard3D";
+export { Gallery3D } from "./Gallery3D";

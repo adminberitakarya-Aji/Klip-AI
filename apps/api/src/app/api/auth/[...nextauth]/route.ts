@@ -4,3 +4,4 @@
 //
 // Do NOT add GET/POST handlers here. If you need to create an auth-related
 // endpoint on the API side, use a different route (e.g. /api/auth/verify).
+export {};

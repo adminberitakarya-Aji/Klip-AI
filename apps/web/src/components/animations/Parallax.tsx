@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useRef, type ReactNode, type HTMLAttributes } from 'react';
-import { useGSAP } from '@gsap/react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useRef, type ReactNode, type HTMLAttributes } from "react";
+import { useGSAP } from "@gsap/react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,11 +13,11 @@ interface ParallaxProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export function Parallax({ 
-  children, 
+export function Parallax({
+  children,
   speed = 0.5,
-  className = '',
-  ...props 
+  className = "",
+  ...props
 }: ParallaxProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -27,11 +27,11 @@ export function Parallax({
     const ctx = gsap.context(() => {
       gsap.to(ref.current!, {
         yPercent: (1 - speed) * 100,
-        ease: 'none',
+        ease: "none",
         scrollTrigger: {
           trigger: ref.current,
-          start: 'top bottom',
-          end: 'bottom top',
+          start: "top bottom",
+          end: "bottom top",
           scrub: true,
         },
       });
@@ -41,13 +41,13 @@ export function Parallax({
   }, [speed]);
 
   return (
-    <div 
-      ref={ref} 
+    <div
+      ref={ref}
       className={`relative overflow-hidden ${className}`}
-      style={{ willChange: 'transform', ...props.style }}
+      style={{ willChange: "transform", ...props.style }}
       {...props}
     >
-      {children}
+      {children as any}
     </div>
   );
 }
@@ -58,11 +58,11 @@ interface ParallaxItemProps extends HTMLAttributes<HTMLDivElement> {
   className?: string;
 }
 
-export function ParallaxItem({ 
-  children, 
+export function ParallaxItem({
+  children,
   speed = 0.5,
-  className = '',
-  ...props 
+  className = "",
+  ...props
 }: ParallaxItemProps) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -72,11 +72,11 @@ export function ParallaxItem({
     const ctx = gsap.context(() => {
       gsap.to(ref.current!, {
         yPercent: (1 - speed) * 100,
-        ease: 'none',
+        ease: "none",
         scrollTrigger: {
           trigger: ref.current,
-          start: 'top bottom',
-          end: 'bottom top',
+          start: "top bottom",
+          end: "bottom top",
           scrub: true,
         },
       });
@@ -86,13 +86,13 @@ export function ParallaxItem({
   }, [speed]);
 
   return (
-    <div 
-      ref={ref} 
+    <div
+      ref={ref}
       className={className}
-      style={{ willChange: 'transform', ...props.style }}
+      style={{ willChange: "transform", ...props.style }}
       {...props}
     >
-      {children}
+      {children as any}
     </div>
   );
 }

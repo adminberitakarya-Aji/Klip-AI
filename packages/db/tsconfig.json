@@ -12,6 +12,7 @@
     "emitDeclarationOnly": false,
     "noEmit": false,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
       "@/*": ["src/*"],
       "@klipai/db/*": ["src/*"]
