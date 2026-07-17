@@ -1,6 +1,7 @@
 import { GenerationType, GenerationRequest, GenerationResponse, GenerationStatus } from '@klipai/core/types';
 
-export type { GenerationType, GenerationRequest, GenerationResponse, GenerationStatus } from '@klipai/core/types';
+export { GenerationType, GenerationStatus };
+export type { GenerationRequest, GenerationResponse } from '@klipai/core/types';
 import { env } from '@klipai/config';
 
 export interface AIProvider {

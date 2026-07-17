@@ -42,8 +42,8 @@ class GenerationService {
         type: request.type.toUpperCase().replace(/-/g, '_') as any,
         status: 'QUEUED',
         options: request.options as any,
-        inputImages: request.images || [],
-        inputVideo: request.video || null,
+        images: request.images || [],
+        video: request.video || null,
       },
     });
 
@@ -120,10 +120,11 @@ class GenerationService {
       const provider = this.getProvider(generation.type as GenerationType);
       const result = await provider.getStatus(generationId);
       
-      if (result.status !== generation.status) {
+      const mappedStatus = result.status.toUpperCase() as 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'IDLE';
+      if (mappedStatus !== generation.status) {
         await prisma.generation.update({
           where: { id: generationId },
-          data: { status: result.status.toUpperCase(), progress: result.progress, resultUrl: result.resultUrl },
+          data: { status: mappedStatus, progress: result.progress, resultUrl: result.resultUrl },
         });
       }
       return result;

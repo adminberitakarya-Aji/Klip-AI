@@ -2,18 +2,18 @@ import { z } from 'zod';
 
 const envSchema = z.object({
   // Database
-  DATABASE_URL: z.string().url(),
+  DATABASE_URL: z.string().url().optional(),
   
   // Auth
-  NEXTAUTH_SECRET: z.string().min(32),
-  NEXTAUTH_URL: z.string().url(),
+  NEXTAUTH_SECRET: z.string().min(32).optional(),
+  NEXTAUTH_URL: z.string().url().optional(),
   
   // AI Providers
-  AI_PROVIDER_API_KEY: z.string().min(1),
+  AI_PROVIDER_API_KEY: z.string().min(1).optional(),
   AI_PROVIDER_BASE_URL: z.string().url().optional(),
   
   // App
-  NEXT_PUBLIC_APP_URL: z.string().url(),
+  NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   
   // Optional

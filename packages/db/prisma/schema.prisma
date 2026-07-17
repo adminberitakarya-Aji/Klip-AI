@@ -12,6 +12,7 @@ model User {
   email         String    @unique
   name          String?
   image         String?
+  passwordHash  String?
   role          Role      @default(USER)
   subscription  Subscription @default(FREE)
   credits       Int       @default(30)

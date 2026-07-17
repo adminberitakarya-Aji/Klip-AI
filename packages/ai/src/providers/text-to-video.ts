@@ -33,6 +33,7 @@ export class TextToVideoProvider extends BaseProvider implements AIProvider {
       progress: result.status === 'completed' ? 100 : result.status === 'processing' ? 50 : 0,
       resultUrl: result.video_url,
       error: result.status === 'failed' ? 'Generation failed' : undefined,
+      createdAt: Date.now(),
     };
   }
 
@@ -47,6 +48,7 @@ export class TextToVideoProvider extends BaseProvider implements AIProvider {
       progress: result.progress,
       resultUrl: result.video_url,
       error: result.error,
+      createdAt: Date.now(),
     };
   }
 

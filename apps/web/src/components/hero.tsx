@@ -3,63 +3,12 @@
 import { Button } from '@klipai/ui/components/button';
 import { ArrowRight, Sparkles, Zap, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Html, Stars, Environment } from '@react-three/drei';
-import * as THREE from 'three';
+import { CanvasProvider } from './three/CanvasProvider';
+import { Stars } from './three/objects/Stars';
+import { Float } from './three/objects/Float';
+import { AuroraOrbs } from './three/objects/AuroraOrbs';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useEffect, useRef } from 'react';
-
-gsap.registerPlugin(ScrollTrigger);
-
-function HeroParticles() {
-  const pointsRef = useRef<THREE.Points>(null);
-  const count = 2000;
-
-  useEffect(() => {
-    if (!pointsRef.current) return;
-
-    const positions = new Float32Array(count * 3);
-    const colors = new Float32Array(count * 3);
-    const sizes = new Float32Array(count);
-
-    for (let i = 0; i < count; i++) {
-      const radius = 5 + Math.random() * 15;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
-
-      positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
-      positions[i * 3 + 2] = radius * Math.cos(phi);
-
-      const color = new THREE.Color();
-      color.setHSL(0.7 + Math.random() * 0.3, 0.8, 0.5 + Math.random() * 0.3);
-      colors[i * 3] = color.r;
-      colors[i * 3 + 1] = color.g;
-      colors[i * 3 + 2] = color.b;
-
-      sizes[i] = Math.random() * 2 + 0.5;
-    }
-
-    const geometry = pointsRef.current.geometry;
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
-  }, [count]);
-
-  return (
-    <points ref={pointsRef}>
-      <bufferGeometry />
-      <pointsMaterial 
-        vertexColors 
-        sizeAttenuation 
-        transparent 
-        opacity={0.6}
-        blending={THREE.AdditiveBlending}
-      />
-    </points>
-  );
-}
 
 function HeroContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -94,19 +43,15 @@ function HeroContent() {
         <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-3xl animate-pulse delay-1000" />
-        <Canvas 
+        
+        <CanvasProvider 
           className="absolute inset-0 pointer-events-none" 
-          camera={{ position: [0, 0, 5], fov: 50 }}
+          camera={{ position: [0, 0, 30], fov: 50 }}
         >
-          <color attach="background" args={['#000000']} />
-          <Stars radius={100} depth={50} factor={200} />
-          <Environment 
-            preset="city" 
-            background={false} 
-            resolution={256}
-          />
-          <HeroParticles />
-        </Canvas>
+          <Stars count={3000} radius={50} size={0.15} />
+          <Float position={[0, 0, 0]} scale={1.5} speed={1} />
+          <AuroraOrbs count={5} radius={15} speed={0.5} />
+        </CanvasProvider>
       </div>
 
       {/* Foreground Content */}

@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@gsap/react": "^2.1.2",
     "@klipai/ai": "workspace:*",
     "@klipai/config": "workspace:*",
     "@klipai/core": "workspace:*",

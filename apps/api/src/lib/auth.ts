@@ -3,11 +3,36 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@klipai/db/client';
 import { compare } from 'bcryptjs';
+import type { NextAuthConfig } from 'next-auth';
+import type { DefaultSession } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
 
-export const authOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+declare module 'next-auth' {
+  interface Session {
+    user: {
+      id: string;
+      role: string;
+      subscription: string;
+    } & DefaultSession['user'];
+  }
+  interface User {
+    role: string;
+    subscription: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string;
+    role: string;
+    subscription: string;
+  }
+}
+
+export const authOptions: NextAuthConfig = {
+  adapter: PrismaAdapter(prisma),
   session: {
-    strategy: 'jwt' as const,
+    strategy: 'jwt',
   },
   pages: {
     signIn: '/auth/signin',
@@ -19,7 +44,7 @@ export const authOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials: Partial<Record<string, unknown>> | undefined) {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password required');
         }
@@ -49,15 +74,15 @@ export const authOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }: { token: any; user: any }) {
+    async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.subscription = user.subscription;
+        token.id = user.id ?? '';
+        token.role = user.role ?? '';
+        token.subscription = user.subscription ?? '';
       }
       return token;
     },
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
@@ -68,6 +93,6 @@ export const authOptions = {
   },
 };
 
-const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+const { handlers, auth } = NextAuth(authOptions);
 
-export { handlers, auth, signIn, signOut };
+export { handlers, auth };

@@ -16,6 +16,9 @@ export enum GenerationStatus {
   FAILED = 'failed',
 }
 
+// Re-export as const for type-only imports if needed
+export const GenerationStatusValues = Object.values(GenerationStatus);
+
 export interface GenerationRequest {
   prompt: string;
   type: GenerationType;

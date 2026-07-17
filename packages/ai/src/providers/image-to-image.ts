@@ -31,6 +31,7 @@ export class ImageToImageProvider extends BaseProvider implements AIProvider {
       progress: result.status === 'completed' ? 100 : result.status === 'processing' ? 50 : 0,
       resultUrl: result.image_url,
       error: result.status === 'failed' ? 'Generation failed' : undefined,
+      createdAt: Date.now(),
     };
   }
 
@@ -45,6 +46,7 @@ export class ImageToImageProvider extends BaseProvider implements AIProvider {
       progress: result.progress,
       resultUrl: result.image_url,
       error: result.error,
+      createdAt: Date.now(),
     };
   }
 

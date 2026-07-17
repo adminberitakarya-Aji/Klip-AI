@@ -48,16 +48,16 @@ export abstract class BaseProvider implements AIProvider {
 
   protected mapStatus(providerStatus: string): GenerationStatus {
     const statusMap: Record<string, GenerationStatus> = {
-      'pending': 'queued',
-      'queued': 'queued',
-      'processing': 'processing',
-      'running': 'processing',
-      'completed': 'completed',
-      'succeeded': 'completed',
-      'failed': 'failed',
-      'error': 'failed',
-      'cancelled': 'failed',
+      'pending': GenerationStatus.QUEUED,
+      'queued': GenerationStatus.QUEUED,
+      'processing': GenerationStatus.PROCESSING,
+      'running': GenerationStatus.PROCESSING,
+      'completed': GenerationStatus.COMPLETED,
+      'succeeded': GenerationStatus.COMPLETED,
+      'failed': GenerationStatus.FAILED,
+      'error': GenerationStatus.FAILED,
+      'cancelled': GenerationStatus.FAILED,
     };
-    return statusMap[providerStatus.toLowerCase()] || 'failed';
+    return statusMap[providerStatus.toLowerCase()] || GenerationStatus.FAILED;
   }
 }
