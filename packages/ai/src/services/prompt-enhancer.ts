@@ -13,6 +13,8 @@ import {
   GenerationType,
   PROVIDER_CAPABILITIES,
   ProviderCapabilities,
+  ReferenceImage,
+  ConsistencyConfig,
 } from "../pipeline/types";
 
 interface IntentAnalysis {
@@ -22,6 +24,11 @@ interface IntentAnalysis {
   physicsComplexity: "low" | "medium" | "high";
   suggestedDuration: number;
   suggestedAspectRatio: string;
+  // NEW: Specific consistency needs detected
+  consistencyType?: "face" | "subject" | "style" | "structure";
+  referenceRoles?: Array<
+    "character" | "subject" | "style" | "structure" | "face" | "pose"
+  >;
 }
 
 export class PromptEnhancer {

@@ -15,6 +15,8 @@ import {
 } from "../types";
 import { prisma } from "@klipai/db/client";
 import { logger } from "@klipai/core/logger";
+import { createStorageProvider } from "./storage";
+import { StorageProvider } from "@klipai/core/storage";
 
 export interface GenerationJob {
   id: string;
@@ -22,6 +24,8 @@ export interface GenerationJob {
   type: GenerationType;
   images?: string[];
   video?: string;
+  // NEW: Structured reference images with roles/weights (Phase 11.1)
+  referenceImages?: import("../pipeline/types").ReferenceImage[];
   userPreferences?: {
     style?: "cinematic" | "commercial" | "social" | "artistic";
     duration?: number;
@@ -39,6 +43,7 @@ export class GenerationService {
   private promptEnhancer: PromptEnhancer;
   private orchestrator: PipelineOrchestrator;
   private jobs: Map<string, GenerationJob> = new Map();
+  private storage: StorageProvider;
 
   // Dead letter queue: a FAILED generation can be retried this many
   // times (via retryFailedGeneration) before it's considered
@@ -47,12 +52,13 @@ export class GenerationService {
   // Redis-backed upgrade if volume ever needs it.
   private readonly MAX_RETRIES = 3;
 
-  constructor() {
+  constructor(storage?: StorageProvider) {
     this.promptEnhancer = new PromptEnhancer();
     this.orchestrator = new PipelineOrchestrator(
       this.promptEnhancer,
       providerRouter,
     );
+    this.storage = storage || createStorageProvider();
     initializeProviders();
   }
 
@@ -116,9 +122,40 @@ export class GenerationService {
     }
 
     try {
-      await this.orchestrator.runPipeline(input, (update) =>
+      const completed = await this.orchestrator.runPipeline(input, (update) =>
         this.updateJob(jobId, { ...update, updatedAt: Date.now() }),
       );
+
+      // NEW: Upload result to CDN/storage if configured and result URL exists
+      if (completed.resultUrl && this.storage.isConfigured()) {
+        try {
+          // Fetch the generated file from provider URL
+          const response = await fetch(completed.resultUrl);
+          if (response.ok) {
+            const buffer = Buffer.from(await response.arrayBuffer());
+            const contentType = this.getContentType(input.type);
+            const key = `generations/${jobId}/output${this.getFileExtension(input.type, contentType)}`;
+
+            const uploadResult = await this.storage.upload(
+              key,
+              buffer,
+              contentType,
+            );
+
+            // Update job with CDN URL
+            await this.updateJob(jobId, { resultUrl: uploadResult.url });
+          }
+        } catch (uploadError) {
+          logger.error("Failed to upload generated asset to storage", {
+            jobId,
+            error:
+              uploadError instanceof Error
+                ? uploadError.message
+                : String(uploadError),
+          });
+          // Don't fail the generation if upload fails - keep original URL
+        }
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Generation failed";
@@ -134,6 +171,28 @@ export class GenerationService {
       });
       await this.recordFailureForRetry(jobId);
     }
+  }
+
+  /**
+   * Get content type based on generation type
+   */
+  private getContentType(type: GenerationType): string {
+    const isVideo = [
+      GenerationType.TEXT_TO_VIDEO,
+      GenerationType.IMAGE_TO_VIDEO,
+      GenerationType.VIDEO_TO_VIDEO,
+      GenerationType.MOTION_CONTROL,
+    ].includes(type);
+    return isVideo ? "video/mp4" : "image/png";
+  }
+
+  /**
+   * Get file extension based on generation type
+   */
+  private getFileExtension(type: GenerationType, contentType: string): string {
+    if (contentType.startsWith("video/")) return ".mp4";
+    if (contentType.startsWith("image/")) return ".png";
+    return ".bin";
   }
 
   /**

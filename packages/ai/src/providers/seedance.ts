@@ -6,7 +6,11 @@ import {
   GenerationType,
   GenerationStatus,
 } from "../types";
-import { ProviderCapabilities } from "../pipeline/types";
+import {
+  ProviderCapabilities,
+  ReferenceImage,
+  ConsistencyConfig,
+} from "../pipeline/types";
 import { env } from "@klipai/config";
 
 export class SeedanceProvider extends BaseProvider {
@@ -115,8 +119,36 @@ export class SeedanceProvider extends BaseProvider {
         const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
         payload[snakeKey] = value;
       });
+
+      // Handle reference images with roles/weights (NEW - Phase 11.1)
+      if (opts.referenceImages && Array.isArray(opts.referenceImages)) {
+        const refImages = opts.referenceImages as ReferenceImage[];
+        payload.reference_images = refImages.map((ref) => ({
+          url: ref.url,
+          role: ref.role,
+          weight: ref.weight,
+          ...(ref.crop && { crop: ref.crop }),
+          ...(ref.maskUrl && { mask_url: ref.maskUrl }),
+        }));
+      }
+
+      // Handle consistency config (NEW - Phase 11.1)
+      if (opts.consistency) {
+        const consistency = opts.consistency as ConsistencyConfig;
+        payload.identity_preservation = consistency.identityPreservation;
+        if (consistency.referenceStrength !== undefined) {
+          payload.reference_strength = consistency.referenceStrength;
+        }
+        if (consistency.consistencyFrames !== undefined) {
+          payload.consistency_frames = consistency.consistencyFrames;
+        }
+        if (consistency.blendMode) {
+          payload.blend_mode = consistency.blendMode;
+        }
+      }
     }
 
+    // Legacy support: simple images array (backward compat)
     if (images?.length) {
       payload.image_urls = images;
     }

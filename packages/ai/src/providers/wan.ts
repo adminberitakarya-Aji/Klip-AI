@@ -6,7 +6,11 @@ import {
   GenerationType,
   GenerationStatus,
 } from "../types";
-import { ProviderCapabilities } from "../pipeline/types";
+import {
+  ProviderCapabilities,
+  ReferenceImage,
+  ConsistencyConfig,
+} from "../pipeline/types";
 import { env } from "@klipai/config";
 
 export class WanProvider extends BaseProvider {
@@ -110,8 +114,19 @@ export class WanProvider extends BaseProvider {
         const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
         payload[snakeKey] = value;
       });
+
+      // Handle reference images with roles/weights (NEW - Phase 11.1)
+      // Wan has limited support - only pass basic image_urls
+      if (opts.referenceImages && Array.isArray(opts.referenceImages)) {
+        const refImages = opts.referenceImages as ReferenceImage[];
+        // Only pass URLs for Wan (no role/weight support)
+        payload.image_urls = refImages.map((ref) => ref.url);
+      }
+
+      // Consistency config not supported by Wan - silently ignore
     }
 
+    // Legacy support: simple images array (backward compat)
     if (images?.length) {
       payload.image_urls = images;
     }

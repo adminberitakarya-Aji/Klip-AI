@@ -74,6 +74,8 @@ model Generation {
   options     Json?
   images      String[]         @default([])
   video       String?
+  // NEW: Structured reference images with roles/weights (Phase 11.1)
+  referenceImages Json?
   status      GenerationStatus @default(QUEUED)
   progress    Int              @default(0)
   resultUrl   String?

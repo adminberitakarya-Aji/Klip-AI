@@ -43,6 +43,17 @@ const envSchema = z.object({
   WAN_API_KEY: z.string().min(1).optional(),
   WAN_BASE_URL: z.string().url().optional(),
 
+  // Storage - Cloudflare R2
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
+  R2_PUBLIC_URL: z.string().url().optional(),
+  R2_REGION: z.string().optional(),
+
+  // Storage - Vercel Blob
+  BLOB_READ_WRITE_TOKEN: z.string().min(1).optional(),
+
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
   NODE_ENV: z

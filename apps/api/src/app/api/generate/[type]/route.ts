@@ -120,6 +120,8 @@ export async function POST(
           options: parsed.data.options as any,
           images: parsed.data.images || [],
           video: parsed.data.video || null,
+          // NEW: Store reference images (Phase 11.1)
+          referenceImages: parsed.data.referenceImages as any,
         },
       });
 
@@ -133,6 +135,8 @@ export async function POST(
         type: type as GenerationType,
         images: parsed.data.images,
         video: parsed.data.video,
+        // NEW: Pass reference images (Phase 11.1)
+        referenceImages: parsed.data.referenceImages,
         userPreferences: parsed.data.options as any,
       })
       .catch(console.error);
