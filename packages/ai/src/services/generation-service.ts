@@ -14,6 +14,8 @@ import {
   GenerationStatus,
 } from "../types";
 import { prisma } from "@klipai/db/client";
+import { logger } from "@klipai/core/logger";
+import * as Sentry from "@sentry/nextjs";
 
 export interface GenerationJob {
   id: string;
@@ -46,11 +48,14 @@ export class GenerationService {
       providerRouter,
     );
     initializeProviders();
+    logger.info("GenerationService initialized");
   }
 
   async generate(input: PromptEnhancerInput): Promise<GenerationJob> {
-    // Create job record
     const jobId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const startTime = Date.now();
+
+    // Create job record
     const job: GenerationJob = {
       id: jobId,
       brief: input.brief,
@@ -65,14 +70,46 @@ export class GenerationService {
     };
     this.jobs.set(jobId, job);
 
-    // Process asynchronously
-    this.processGeneration(jobId, input).catch((error) => {
-      this.updateJob(jobId, {
-        status: GenerationStatus.FAILED,
-        error: error.message,
-        updatedAt: Date.now(),
-      }).catch(console.error);
+    // Set Sentry context
+    Sentry.setContext("generation_job", {
+      jobId,
+      type: input.type,
+      brief: input.brief,
+      hasImages: !!input.images?.length,
+      hasVideo: !!input.video,
     });
+
+    logger.info("Generation job created", {
+      jobId,
+      type: input.type,
+      brief: input.brief,
+    });
+
+    // Process asynchronously
+    this.processGeneration(jobId, input)
+      .then(() => {
+        const duration = Date.now() - startTime;
+        logger.info("Generation job completed", {
+          jobId,
+          durationMs: duration,
+        });
+      })
+      .catch((error) => {
+        const duration = Date.now() - startTime;
+        logger.error("Generation job failed", {
+          jobId,
+          durationMs: duration,
+          error: error.message,
+        });
+        Sentry.captureException(error, {
+          extra: { jobId, type: input.type },
+        });
+        this.updateJob(jobId, {
+          status: GenerationStatus.FAILED,
+          error: error.message,
+          updatedAt: Date.now(),
+        }).catch(console.error);
+      });
 
     return job;
   }

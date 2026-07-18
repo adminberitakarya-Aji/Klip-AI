@@ -19,6 +19,7 @@
     "@klipai/config": "workspace:*",
     "@klipai/core": "workspace:*",
     "@klipai/db": "workspace:*",
+    "@sentry/nextjs": "^10.66.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {

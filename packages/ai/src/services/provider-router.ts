@@ -7,6 +7,8 @@ import {
   ProviderRequest,
 } from "../pipeline/types";
 import { AIProvider, GenerationRequest } from "../types";
+import { logger } from "@klipai/core/logger";
+import * as Sentry from "@sentry/nextjs";
 
 interface CircuitBreakerState {
   failures: number;
@@ -33,6 +35,7 @@ export class ProviderRouter {
 
   registerProvider(provider: AIProvider): void {
     this.providers.set(provider.name, provider);
+    logger.info(`Provider registered: ${provider.name}`);
   }
 
   getProvider(name: string): AIProvider | undefined {
@@ -42,9 +45,31 @@ export class ProviderRouter {
   async generate(
     request: EnhancedGenerationRequest,
   ): Promise<ProviderResponse> {
+    const requestId = crypto.randomUUID();
+    const startTime = Date.now();
+
+    // Set Sentry context for tracing
+    Sentry.setContext("generation_request", {
+      requestId,
+      type: request.type,
+      priority: request.metadata.priority,
+      recommendedProvider: request.metadata.recommendedProvider,
+      complexity: request.metadata.complexity,
+    });
+
     // 1. Select best provider based on type support, priority, circuit breaker
     const provider = this.selectProvider(request);
     if (!provider) {
+      logger.error("No available provider for generation type", {
+        type: request.type,
+        requestId,
+      });
+      Sentry.captureException(
+        new Error("No available provider for this generation type"),
+        {
+          extra: { requestId, type: request.type },
+        },
+      );
       throw new Error("No available provider for this generation type");
     }
 
@@ -52,7 +77,33 @@ export class ProviderRouter {
     const providerRequest = this.mapToProviderFormat(provider, request);
 
     // 3. Execute with fallback chain
-    return this.executeWithFallback(provider, providerRequest, request);
+    try {
+      const response = await this.executeWithFallback(
+        provider,
+        providerRequest,
+        request,
+        requestId,
+        startTime,
+      );
+      logger.provider.response(
+        provider.name,
+        request.type,
+        requestId,
+        Date.now() - startTime,
+      );
+      return response;
+    } catch (error) {
+      logger.provider.error(
+        provider.name,
+        request.type,
+        requestId,
+        error as Error,
+      );
+      Sentry.captureException(error, {
+        extra: { requestId, provider: provider.name, type: request.type },
+      });
+      throw error;
+    }
   }
 
   private selectProvider(
@@ -72,6 +123,7 @@ export class ProviderRouter {
     );
 
     if (availableProviders.length === 0) {
+      logger.warn("All providers have open circuit breakers", { type });
       return null;
     }
 
@@ -105,6 +157,13 @@ export class ProviderRouter {
       );
       if (recommended) selected = recommended;
     }
+
+    logger.info(`Provider selected: ${selected.name}`, {
+      type,
+      priority,
+      available: availableProviders.map((p) => p.name),
+      selected: selected.name,
+    });
 
     return this.providers.get(selected.name) || null;
   }
@@ -215,6 +274,8 @@ export class ProviderRouter {
     primaryProvider: AIProvider,
     request: ProviderRequest,
     originalRequest: EnhancedGenerationRequest,
+    requestId: string,
+    startTime: number,
   ): Promise<ProviderResponse> {
     const fallbackChain = this.getFallbackChain(
       primaryProvider.name,
@@ -383,6 +444,34 @@ export class ProviderRouter {
     if (provider) {
       await provider.cancel(id);
     }
+  }
+
+  /**
+   * Lightweight health snapshot per provider — registration status +
+   * circuit breaker state. Deliberately does NOT make a live network
+   * call to each provider's API on every hit (slow, and some providers
+   * bill per request); circuit breaker state is a good-enough proxy
+   * for "is this provider currently usable by the router".
+   */
+  getHealth(): Record<
+    string,
+    { registered: boolean; circuitOpen: boolean; failures: number }
+  > {
+    const result: Record<
+      string,
+      { registered: boolean; circuitOpen: boolean; failures: number }
+    > = {};
+
+    for (const cap of PROVIDER_CAPABILITIES) {
+      const breaker = this.circuitBreakers.get(cap.name);
+      result[cap.name] = {
+        registered: this.providers.has(cap.name),
+        circuitOpen: breaker?.isOpen ?? false,
+        failures: breaker?.failures ?? 0,
+      };
+    }
+
+    return result;
   }
 }
 

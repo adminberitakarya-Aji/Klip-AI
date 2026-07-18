@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Mock @sentry/nextjs before importing ProviderRouter (which imports it)
+vi.mock("@sentry/nextjs", () => ({
+  setContext: vi.fn(),
+  captureException: vi.fn(),
+  addBreadcrumb: vi.fn(),
+  startSpan: vi.fn().mockReturnValue({ end: vi.fn() }),
+}));
+
 import { ProviderRouter } from "../provider-router";
 import { EnhancedGenerationRequest } from "../../pipeline/types";
 import {
@@ -231,6 +240,42 @@ describe("ProviderRouter", () => {
       await expect(
         router.waitForCompletion("kling", "kling_job_1"),
       ).rejects.toThrow("content policy violation");
+    });
+  });
+
+  describe("getHealth", () => {
+    it("reports registered + circuit state per provider (used by /api/health)", async () => {
+      const seedance = createMockProvider("seedance", {
+        generate: vi.fn().mockRejectedValue(new Error("down")),
+      });
+      router.registerProvider(seedance);
+      // kling/wan intentionally NOT registered (e.g. no API key configured)
+
+      const request = baseRequest({
+        metadata: {
+          complexity: "simple",
+          recommendedProvider: "seedance",
+          estimatedDuration: 15,
+          requiresConsistency: false,
+          priority: "quality",
+        },
+      });
+
+      // Trip seedance's circuit breaker (only provider registered, so
+      // the whole chain is just [seedance] and every call fails).
+      await expect(router.generate(request)).rejects.toThrow();
+      await expect(router.generate(request)).rejects.toThrow();
+      await expect(router.generate(request)).rejects.toThrow();
+
+      const health = router.getHealth();
+
+      expect(health.seedance).toEqual({
+        registered: true,
+        circuitOpen: true,
+        failures: 3,
+      });
+      expect(health.kling.registered).toBe(false);
+      expect(health.wan.registered).toBe(false);
     });
   });
 });

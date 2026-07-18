@@ -382,7 +382,11 @@ class ProviderRouter {
     // primary goes first, then the rest of the fixed order that supports this type
   }
 
-  async waitForCompletion(providerName: string, id: string, maxWaitMs = 300000): Promise<ProviderResponse> {
+  async waitForCompletion(
+    providerName: string,
+    id: string,
+    maxWaitMs = 300000, // 5 minutes
+  ): Promise<ProviderResponse> {
     // Poll with exponential backoff (1s -> 2s -> 4s ... capped at 30s)
     // Max wait: 5 minutes. Caller must pass the provider that ACTUALLY
     // fulfilled the request (response.metadata.provider), not the
@@ -535,7 +539,7 @@ export class GenerationService {
 
 ## 📋 Phase 10: Production Ready
 
-### 10.1 Monitoring & Observability
+### 10.1 Monitoring & Observability ✅ **DONE**
 
 - Sentry integration (DSN di env)
 - Structured logging (pino/winston)
@@ -559,8 +563,134 @@ export class GenerationService {
 
 - Prisma connection pooling
 - Redis cache untuk user credits, provider status
-- CDN untuk generated assets
+- **CDN untuk generated assets (Cloudflare R2 + Vercel Blob)**
 - Bundle analysis (`@next/bundle-analyzer`)
+
+---
+
+## 📋 Phase 10.4 Detail: Storage Abstraction + Cloudflare R2 / Vercel Blob
+
+### Architecture
+
+```
+packages/core/src/storage.ts          → Interface StorageProvider
+packages/ai/src/services/storage/
+  ├── r2-provider.ts                  → Cloudflare R2 implementation
+  ├── vercel-blob-provider.ts         → Vercel Blob implementation
+  └── index.ts                        → Factory createStorageProvider()
+packages/ai/src/services/generation-service.ts  → Inject storage, upload result
+packages/config/src/index.ts          → Zod validation untuk R2 & Blob env
+apps/api/.env.example                 → Document env vars
+apps/web/.env.example                 → Document NEXT_PUBLIC_R2_PUBLIC_URL
+```
+
+### Interface (`packages/core/src/storage.ts`)
+
+```typescript
+export interface StorageProvider {
+  upload(key: string, data: Buffer, contentType: string): Promise<string>;
+  delete(key: string): Promise<void>;
+  getSignedUrl(key: string, options?: SignedUrlOptions): Promise<string>;
+  isConfigured(): boolean;
+}
+
+export interface SignedUrlOptions {
+  expiresIn?: number; // seconds, default 3600
+  method?: "GET" | "PUT";
+}
+
+export interface UploadResult {
+  url: string; // public URL (R2 custom domain) atau signed URL
+  key: string; // object key
+  provider: "r2" | "vercel-blob";
+}
+```
+
+### R2 Provider Implementation (`packages/ai/src/services/storage/r2-provider.ts`)
+
+- **SDK**: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (S3-compatible)
+- **Endpoint**: `https://<account-id>.r2.cloudflarestorage.com`
+- **Custom Domain**: `R2_PUBLIC_URL` (e.g., `https://cdn.klip.ai`) → public URL tanpa signed URL
+- **Fallback**: Auto-generate signed URL (TTL 1h default) kalau custom domain belum setup
+- **Key Format**: `generations/{userId}/{generationId}.{ext}`
+
+### Vercel Blob Provider (`packages/ai/src/services/storage/vercel-blob-provider.ts`)
+
+- **SDK**: `@vercel/blob`
+- **Token**: `BLOB_READ_WRITE_TOKEN`
+- **Use Case**: Fallback kalau R2 tidak dikonfigurasi, atau untuk preview assets
+
+### Factory (`packages/ai/src/services/storage/index.ts`)
+
+```typescript
+export function createStorageProvider(): StorageProvider {
+  // Priority: R2 > Vercel Blob > NullProvider (no-op)
+  if (env.R2_ACCOUNT_ID && env.R2_ACCESS_KEY_ID && env.R2_SECRET_ACCESS_KEY) {
+    return new R2StorageProvider({ ... });
+  }
+  if (env.BLOB_READ_WRITE_TOKEN) {
+    return new VercelBlobStorageProvider({ token: env.BLOB_READ_WRITE_TOKEN });
+  }
+  return new NullStorageProvider(); // no-op, return original URL
+}
+```
+
+### Integration di `GenerationService`
+
+```typescript
+// generation-service.ts
+constructor(private storage: StorageProvider = createStorageProvider()) {}
+
+async processGeneration(jobId: string, input: PromptEnhancerInput) {
+  // ... existing pipeline ...
+  const completed = await this.orchestrator.runPipeline(input, ...);
+
+  // NEW: Upload result to CDN/storage
+  if (completed.resultUrl && this.storage.isConfigured()) {
+    const response = await fetch(completed.resultUrl);
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const key = `generations/${jobId}/output.mp4`;
+    const cdnUrl = await this.storage.upload(key, buffer, 'video/mp4');
+
+    // Update DB dengan CDN URL
+    await this.updateJob(jobId, { resultUrl: cdnUrl });
+  }
+}
+```
+
+### Environment Variables
+
+**`apps/api/.env.example`**
+
+```env
+# Cloudflare R2 (Primary)
+R2_ACCOUNT_ID="your-account-id"
+R2_ACCESS_KEY_ID="your-access-key-id"
+R2_SECRET_ACCESS_KEY="your-secret-access-key"
+R2_BUCKET="klip-ai-generations"
+R2_PUBLIC_URL="https://cdn.klip.ai"  # optional: custom domain
+
+# Vercel Blob (Alternative/Fallback)
+BLOB_READ_WRITE_TOKEN="vercel_blob_rw_token"
+```
+
+**`apps/web/.env.example`**
+
+```env
+NEXT_PUBLIC_R2_PUBLIC_URL="https://cdn.klip.ai"
+```
+
+### Dependencies (root `package.json`)
+
+```json
+{
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.500.0",
+    "@aws-sdk/s3-request-presigner": "^3.500.0",
+    "@vercel/blob": "^0.23.0"
+  }
+}
+```
 
 ---
 
@@ -650,5 +780,12 @@ export class GenerationService {
 2. **Dev Test** → `pnpm dev` → test full flow
 3. **Phase 9.8** → Tests & validation: `provider-router.test.ts` (assert `GenerationRequest` shape ke provider, fallback order tetap) + `pipeline-orchestrator.test.ts` (assert polling pakai `response.metadata.provider`) — prioritas tertinggi karena 2 bug kritis kemarin lolos type-check via `as any`
 4. **Phase 10** → Monitoring, docs, deploy
+   - **10.2** Error Handling & Resilience (rate limiting, retry, DLQ)
+   - **10.3** Documentation (README, api.md, ai-pipeline.md, database.md)
+   - **10.4** Performance (Prisma pooling, Redis cache, **R2/Blob Storage**, Bundle analysis)
 5. **Phase 11** → Advanced AI (consistency, motion brush, upscaler, audio)
 6. **Phase 12** → Platform (templates, visual builder, team, API, billing)
+
+---
+
+**Updated**: 2026-07-18 — Added Phase 10.4 Storage Abstraction + Cloudflare R2 / Vercel Blob detail
