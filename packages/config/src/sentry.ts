@@ -8,6 +8,11 @@ export function initSentry(
     tracesSampleRate?: number;
     profilesSampleRate?: number;
     debug?: boolean;
+    // Browser-only (Session Replay). Only meaningful when initSentry()
+    // is called from a client config (e.g. apps/web/sentry.client.config.ts);
+    // server/edge configs simply never pass these.
+    replaysOnErrorSampleRate?: number;
+    replaysSessionSampleRate?: number;
   } = {},
 ): void {
   const dsn = options.dsn || env.SENTRY_DSN;
@@ -25,6 +30,12 @@ export function initSentry(
     profilesSampleRate:
       options.profilesSampleRate ?? (env.NODE_ENV === "production" ? 0.1 : 1.0),
     debug: options.debug ?? env.NODE_ENV === "development",
+    ...(options.replaysOnErrorSampleRate !== undefined
+      ? { replaysOnErrorSampleRate: options.replaysOnErrorSampleRate }
+      : {}),
+    ...(options.replaysSessionSampleRate !== undefined
+      ? { replaysSessionSampleRate: options.replaysSessionSampleRate }
+      : {}),
 
     // Set release version
     release: process.env.npm_package_version || "0.0.0",

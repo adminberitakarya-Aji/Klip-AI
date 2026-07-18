@@ -1,4 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk";
+import { logger } from "@klipai/core/logger";
 import {
   PromptEnhancerInput,
   PromptEnhancerOutput,
@@ -78,7 +79,9 @@ Preferences: ${JSON.stringify(input.userPreferences || {})}`;
         return JSON.parse(content.text) as IntentAnalysis;
       }
     } catch (error) {
-      console.warn("Claude analysis failed, using defaults:", error);
+      logger.warn("Claude intent analysis failed, using defaults", {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
 
     // Fallback defaults
@@ -114,7 +117,12 @@ Preferences: ${JSON.stringify(input.userPreferences || {})}`;
         return this.mergeWithDefaults(parsed, input, analysis);
       }
     } catch (error) {
-      console.warn("Claude generation failed, using template:", error);
+      logger.warn(
+        "Claude structured prompt generation failed, using template",
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      );
     }
 
     // Fallback: template-based generation

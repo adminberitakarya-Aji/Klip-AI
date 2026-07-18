@@ -292,13 +292,13 @@ export class ProviderRouter {
           // Half-open: allow one request
           breaker.isOpen = false;
         } else {
-          console.log(`Circuit breaker open for ${provider.name}, skipping`);
+          logger.provider.circuitBreaker(provider.name, "open");
           continue;
         }
       }
 
       try {
-        console.log(`Attempting generation with ${provider.name}...`);
+        logger.provider.request(provider.name, originalRequest.type, requestId);
 
         // Providers expect the structured GenerationRequest shape
         // ({ prompt, type, options, images, video }), not the flat
@@ -324,7 +324,12 @@ export class ProviderRouter {
         return this.normalizeResponse(provider.name, response);
       } catch (error) {
         lastError = error as Error;
-        console.warn(`Provider ${provider.name} failed:`, error);
+        logger.provider.error(
+          provider.name,
+          originalRequest.type,
+          requestId,
+          error as Error,
+        );
 
         // Record failure
         if (breaker) {
@@ -332,8 +337,18 @@ export class ProviderRouter {
           breaker.lastFailure = Date.now();
           if (breaker.failures >= this.CIRCUIT_BREAKER_THRESHOLD) {
             breaker.isOpen = true;
-            console.log(`Circuit breaker opened for ${provider.name}`);
+            logger.provider.circuitBreaker(provider.name, "open");
           }
+        }
+
+        // Log the fallback to the next candidate in the chain, if any
+        const nextProvider = fallbackChain[fallbackChain.indexOf(provider) + 1];
+        if (nextProvider) {
+          logger.provider.fallback(
+            provider.name,
+            nextProvider.name,
+            lastError.message,
+          );
         }
         continue;
       }

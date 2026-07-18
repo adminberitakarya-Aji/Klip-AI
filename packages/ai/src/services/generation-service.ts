@@ -14,6 +14,7 @@ import {
   GenerationStatus,
 } from "../types";
 import { prisma } from "@klipai/db/client";
+import { logger } from "@klipai/core/logger";
 
 export interface GenerationJob {
   id: string;
@@ -78,7 +79,18 @@ export class GenerationService {
         status: GenerationStatus.FAILED,
         error: error.message,
         updatedAt: Date.now(),
-      }).catch(console.error);
+      }).catch((updateError) =>
+        logger.error(
+          "Failed to mark job as failed after processGeneration error",
+          {
+            jobId,
+            error:
+              updateError instanceof Error
+                ? updateError.message
+                : String(updateError),
+          },
+        ),
+      );
     });
 
     return job;
@@ -110,6 +122,11 @@ export class GenerationService {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Generation failed";
+      logger.generation.failed(
+        jobId,
+        input.type,
+        error instanceof Error ? error : new Error(message),
+      );
       await this.updateJob(jobId, {
         status: GenerationStatus.FAILED,
         error: message,
@@ -135,7 +152,10 @@ export class GenerationService {
         },
       });
     } catch (error) {
-      console.error(`Failed to record DLQ metadata for job ${jobId}:`, error);
+      logger.error(`Failed to record DLQ metadata for job ${jobId}`, {
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 
@@ -182,7 +202,18 @@ export class GenerationService {
       userPreferences: (record.options as any) || undefined,
     };
 
-    this.processGeneration(jobId, input).catch(console.error);
+    logger.generation.retried(
+      jobId,
+      record.retryCount + 1,
+      new Error(record.error || "unknown failure"),
+    );
+
+    this.processGeneration(jobId, input).catch((error) =>
+      logger.error("Retry processGeneration failed", {
+        jobId,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    );
 
     return { retried: true };
   }
@@ -264,7 +295,11 @@ export class GenerationService {
         data: dbUpdates,
       });
     } catch (error) {
-      console.error(`Failed to update database for job ${jobId}:`, error);
+      logger.db.error(
+        "Generation",
+        "update",
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   }
 
@@ -305,7 +340,11 @@ export class GenerationService {
         updatedAt: dbJob.updatedAt.getTime(),
       };
     } catch (error) {
-      console.error(`Failed to fetch status for job ${id}:`, error);
+      logger.db.error(
+        "Generation",
+        "findUnique",
+        error instanceof Error ? error : new Error(String(error)),
+      );
       return null;
     }
   }

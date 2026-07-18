@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { logger } from "@klipai/core/logger";
+import { getClientIp } from "@/lib/rate-limit";
 
 // apps/web and apps/api run on different ports (different origins), but
 // apps/api's session check (see src/lib/session.ts) reads the session cookie
@@ -26,7 +27,7 @@ export function middleware(request: NextRequest) {
     pathname: request.nextUrl.pathname,
     requestId,
     userId: request.headers.get("x-user-id") || undefined,
-    ip: request.ip || request.headers.get("x-forwarded-for") || "unknown",
+    ip: getClientIp(request),
   });
 
   if (request.method === "OPTIONS") {
@@ -47,7 +48,7 @@ export function middleware(request: NextRequest) {
 
   // Log API request
   const userId = request.headers.get("x-user-id") || undefined;
-  const ip = request.ip || request.headers.get("x-forwarded-for") || "unknown";
+  const ip = getClientIp(request);
   logger.api.request(request.method, request.nextUrl.pathname, userId, ip);
 
   // Log response after it's sent (using response headers)
