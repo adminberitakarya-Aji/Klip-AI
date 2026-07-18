@@ -15,14 +15,19 @@
 
 ## 🎯 Fitur Utama
 
-| Kategori | Fitur |
-|----------|-------|
-| **Text-to-Video** | Generate video dari prompt teks (6-12 detik, 720p-4K) |
-| **Image-to-Video** | Animasi gambar statis jadi video dengan kontrol gerakan kamera |
-| **Video-to-Video** | Transformasi style video existing (anime, cinematic, dll) |
-| **Text-to-Image** | Generate gambar high-res dari prompt (512-2048px) |
-| **Image-to-Image** | Edit/transform gambar existing dengan strength control |
-| **Motion Control** | Kontrol gerakan kamera 3D presisi via keyframes/trajectory |
+| Kategori                   | Fitur                                                          |
+| -------------------------- | -------------------------------------------------------------- |
+| **Text-to-Video**          | Generate video dari prompt teks (6-15 detik, 720p-4K)          |
+| **Image-to-Video**         | Animasi gambar statis jadi video dengan kontrol gerakan kamera |
+| **Video-to-Video**         | Transformasi style video existing (anime, cinematic, dll)      |
+| **Text-to-Image**          | Generate gambar high-res dari prompt (512-2048px)              |
+| **Image-to-Image**         | Edit/transform gambar existing dengan strength control         |
+| **Motion Control**         | Kontrol gerakan kamera 3D presisi via keyframes/trajectory     |
+| **Style Transfer**         | Video-to-Video style transfer (cinematic, anime, claymation)   |
+| **Inpainting/Outpainting** | Extend canvas, remove objects, fill masked areas               |
+| **Depth/Normal Control**   | Geometric control via depth & normal maps                      |
+| **Multi-Shot Storyboard**  | Generate 5-10 shots dari 1 prompt, auto-edit & stitch          |
+| **Audio Generation**       | TTS, Sound Effects, Music, Lip Sync (Indonesian voices)        |
 
 ---
 
@@ -94,28 +99,28 @@ klip-ai/
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| **Build System** | Turborepo | 2.x |
-| **Package Manager** | pnpm | 9.x |
-| **Frontend Framework** | Next.js | 15 (App Router) |
-| **API Framework** | Next.js API Routes | 15 |
-| **Language** | TypeScript | 5.5 (strict) |
-| **Styling** | Tailwind CSS | v4 (OKLCH colors) |
-| **UI Components** | shadcn/ui + Radix UI | Latest |
-| **3D/WebGL** | React Three Fiber (R3F) | 9.x |
-| **3D Helpers** | @react-three/drei | 10.x |
-| **Animation** | GSAP + ScrollTrigger | 3.12 |
-| **Smooth Scroll** | Lenis | 1.x |
-| **State Management** | Zustand | 4.5 |
-| **Data Fetching** | TanStack Query | 5.40 |
-| **Authentication** | NextAuth.js | 5.0 (beta) |
-| **Database ORM** | Prisma | 5.15 |
-| **Database** | PostgreSQL | 15+ |
-| **Validation** | Zod | 3.23 |
-| **Forms** | React Hook Form + Zod Resolver | 7.51 |
-| **Notifications** | Sonner | 1.5 |
-| **Charts** | Recharts | 3.9 |
+| Layer                  | Technology                     | Version           |
+| ---------------------- | ------------------------------ | ----------------- |
+| **Build System**       | Turborepo                      | 2.x               |
+| **Package Manager**    | pnpm                           | 9.x               |
+| **Frontend Framework** | Next.js                        | 15 (App Router)   |
+| **API Framework**      | Next.js API Routes             | 15                |
+| **Language**           | TypeScript                     | 5.5 (strict)      |
+| **Styling**            | Tailwind CSS                   | v4 (OKLCH colors) |
+| **UI Components**      | shadcn/ui + Radix UI           | Latest            |
+| **3D/WebGL**           | React Three Fiber (R3F)        | 9.x               |
+| **3D Helpers**         | @react-three/drei              | 10.x              |
+| **Animation**          | GSAP + ScrollTrigger           | 3.12              |
+| **Smooth Scroll**      | Lenis                          | 1.x               |
+| **State Management**   | Zustand                        | 4.5               |
+| **Data Fetching**      | TanStack Query                 | 5.40              |
+| **Authentication**     | NextAuth.js                    | 5.0 (beta)        |
+| **Database ORM**       | Prisma                         | 5.15              |
+| **Database**           | PostgreSQL                     | 15+               |
+| **Validation**         | Zod                            | 3.23              |
+| **Forms**              | React Hook Form + Zod Resolver | 7.51              |
+| **Notifications**      | Sonner                         | 1.5               |
+| **Charts**             | Recharts                       | 3.9               |
 
 ---
 
@@ -159,6 +164,7 @@ pnpm dev
 ### Environment Variables
 
 #### `apps/api/.env`
+
 ```env
 # Database
 DATABASE_URL="postgresql://user:pass@localhost:5432/klipai?schema=public"
@@ -178,6 +184,7 @@ SENTRY_DSN=""
 ```
 
 #### `apps/web/.env`
+
 ```env
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 NEXT_PUBLIC_API_URL="http://localhost:3001"
@@ -188,21 +195,21 @@ NEXTAUTH_URL="http://localhost:3000"
 
 ## 📜 Available Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Jalankan semua apps (web + api) via Turborepo |
-| `pnpm build` | Build semua packages & apps |
-| `pnpm lint` | Lint semua workspace |
-| `pnpm type-check` | Type-check semua workspace |
-| `pnpm format` | Format kode dengan Prettier |
-| `pnpm db:generate` | Generate Prisma Client |
-| `pnpm db:push` | Push schema ke database |
-| `pnpm db:migrate` | Jalankan migrasi Prisma |
-| `pnpm db:studio` | Buka Prisma Studio |
-| `pnpm clean` | Clean build artifacts & node_modules |
-| `pnpm changeset` | Buat changeset untuk release |
-| `pnpm version` | Bump version packages |
-| `pnpm release` | Build & publish ke npm |
+| Command            | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `pnpm dev`         | Jalankan semua apps (web + api) via Turborepo |
+| `pnpm build`       | Build semua packages & apps                   |
+| `pnpm lint`        | Lint semua workspace                          |
+| `pnpm type-check`  | Type-check semua workspace                    |
+| `pnpm format`      | Format kode dengan Prettier                   |
+| `pnpm db:generate` | Generate Prisma Client                        |
+| `pnpm db:push`     | Push schema ke database                       |
+| `pnpm db:migrate`  | Jalankan migrasi Prisma                       |
+| `pnpm db:studio`   | Buka Prisma Studio                            |
+| `pnpm clean`       | Clean build artifacts & node_modules          |
+| `pnpm changeset`   | Buat changeset untuk release                  |
+| `pnpm version`     | Bump version packages                         |
+| `pnpm release`     | Build & publish ke npm                        |
 
 ### Per-App Scripts
 
@@ -227,58 +234,64 @@ pnpm start        # Start production server
 ## 🎨 AI Generation Types
 
 ### 1. Text-to-Video (`text-to-video`)
+
 ```typescript
 interface TextToVideoOptions {
-  duration?: 6 | 12;                    // Durasi video
-  aspectRatio?: '9:16' | '16:9' | '1:1'; // Aspect ratio
-  resolution?: '720p' | '1080p' | '4k';   // Resolusi output
-  fps?: 24 | 30;                         // Frame rate
-  cameraMotion?: 'static' | 'pan' | 'zoom' | 'orbit';
-  seed?: number;                         // Reproducible results
+  duration?: 6 | 12; // Durasi video
+  aspectRatio?: "9:16" | "16:9" | "1:1"; // Aspect ratio
+  resolution?: "720p" | "1080p" | "4k"; // Resolusi output
+  fps?: 24 | 30; // Frame rate
+  cameraMotion?: "static" | "pan" | "zoom" | "orbit";
+  seed?: number; // Reproducible results
 }
 ```
 
 ### 2. Image-to-Video (`image-to-video`)
+
 ```typescript
 interface ImageToVideoOptions {
-  motionStrength?: number;    // 0-1, kekuatan gerakan
-  cameraMotion?: 'static' | 'pan' | 'zoom';
+  motionStrength?: number; // 0-1, kekuatan gerakan
+  cameraMotion?: "static" | "pan" | "zoom";
   duration?: 6 | 12;
 }
 ```
 
 ### 3. Video-to-Video (`video-to-video`)
+
 ```typescript
 interface VideoToVideoOptions {
-  style?: string;             // Style target (anime, cinematic, dll)
-  strength?: number;          // 0-1, seberapa jauh perubahan
+  style?: string; // Style target (anime, cinematic, dll)
+  strength?: number; // 0-1, seberapa jauh perubahan
   preserveStructure?: boolean; // Pertahankan struktur original
 }
 ```
 
 ### 4. Text-to-Image (`text-to-image`)
+
 ```typescript
 interface TextToImageOptions {
-  aspectRatio?: '9:16' | '16:9' | '1:1' | '4:3' | '3:4';
-  resolution?: '512' | '768' | '1024' | '2048';
+  aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
+  resolution?: "512" | "768" | "1024" | "2048";
   style?: string;
   negativePrompt?: string;
 }
 ```
 
 ### 5. Image-to-Image (`image-to-image`)
+
 ```typescript
 interface ImageToImageOptions {
-  strength?: number;          // 0-1, kekuatan transformasi
+  strength?: number; // 0-1, kekuatan transformasi
   preserveStructure?: boolean;
   style?: string;
 }
 ```
 
 ### 6. Motion Control (`motion-control`)
+
 ```typescript
 interface MotionControlOptions {
-  trajectory?: 'linear' | 'circular' | 'spiral' | 'custom';
+  trajectory?: "linear" | "circular" | "spiral" | "custom";
   keyframes?: Array<{
     time: number;
     position: [number, number, number];
@@ -293,30 +306,37 @@ interface MotionControlOptions {
 
 ### Generation Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/generate/text-to-video` | Generate video dari teks |
-| `POST` | `/api/generate/image-to-video` | Animasi gambar jadi video |
-| `POST` | `/api/generate/video-to-video` | Transform style video |
-| `POST` | `/api/generate/text-to-image` | Generate gambar dari teks |
-| `POST` | `/api/generate/image-to-image` | Edit/transform gambar |
-| `POST` | `/api/generate/motion-control` | Kontrol gerakan kamera 3D |
+| Method | Endpoint                                      | Description                                           |
+| ------ | --------------------------------------------- | ----------------------------------------------------- |
+| `POST` | `/api/generate/text-to-video`                 | Generate video dari teks                              |
+| `POST` | `/api/generate/image-to-video`                | Animasi gambar jadi video                             |
+| `POST` | `/api/generate/video-to-video`                | Transform style video                                 |
+| `POST` | `/api/generate/text-to-image`                 | Generate gambar dari teks                             |
+| `POST` | `/api/generate/image-to-image`                | Edit/transform gambar                                 |
+| `POST` | `/api/generate/motion-control`                | Kontrol gerakan kamera 3D                             |
+| `POST` | `/api/generate/video-to-video-style-transfer` | Style transfer (cinematic, anime, claymation)         |
+| `POST` | `/api/generate/inpainting-outpainting`        | Extend canvas, remove objects, fill masked areas      |
+| `POST` | `/api/generate/depth-normal-control`          | Geometric control via depth & normal maps             |
+| `POST` | `/api/generate/multi-shot-storyboard`         | Generate 5-10 shots dari 1 prompt, auto-edit & stitch |
 
 ### Dynamic Route (All Types)
+
 ```bash
 POST /api/generate/[type]
-# type: text-to-video | image-to-video | video-to-video | text-to-image | image-to-image | motion-control
+# type: text-to-video | image-to-video | video-to-video | text-to-image | image-to-image | motion-control | video-to-video-style-transfer | inpainting-outpainting | depth-normal-control | multi-shot-storyboard
 ```
 
 ### Status & History
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/generate/[id]/status` | Cek status generation |
-| `GET` | `/api/user/generations` | Riwayat generasi user (paginated) |
+
+| Method | Endpoint                    | Description                       |
+| ------ | --------------------------- | --------------------------------- |
+| `GET`  | `/api/generate/[id]/status` | Cek status generation             |
+| `GET`  | `/api/user/generations`     | Riwayat generasi user (paginated) |
 
 ### Auth Endpoints (NextAuth v5)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
+
+| Method     | Endpoint                  | Description   |
+| ---------- | ------------------------- | ------------- |
 | `GET/POST` | `/api/auth/[...nextauth]` | Auth handlers |
 
 ---
@@ -375,27 +395,32 @@ enum GenerationStatus { IDLE QUEUED PROCESSING COMPLETED FAILED }
 ## 📦 Package Details
 
 ### `@klipai/ai` — AI Services
+
 - **Providers**: 6 concrete implementations extending `BaseProvider`
 - **GenerationService**: Orchestrates generation lifecycle (DB + Provider)
 - **Types**: Provider interfaces, options per generation type
 
 ### `@klipai/core` — Shared Core
+
 - **Types**: Generation, User, Subscription, API response types
 - **Schemas**: Zod validation for requests/responses
 - **Utils**: `cn()` helper (clsx + tailwind-merge)
 - **Constants**: App-wide constants, enums
 
 ### `@klipai/db` — Database
+
 - **Prisma Client**: Singleton pattern untuk serverless
 - **Schema**: User, Account, Session, Generation models
 - **Scripts**: generate, push, migrate, studio
 
 ### `@klipai/ui` — UI Components
+
 - **40+ Radix-based components**: Button, Dialog, Form, Table, etc.
 - **Hooks**: `useIsMobile`, `useToast`, etc.
 - **Exports**: Component, hooks, lib utilities
 
 ### `@klipai/config` — Config
+
 - **Env Validation**: Zod schema untuk environment variables
 - **Type-safe**: `env` object dengan TypeScript inference
 
@@ -404,6 +429,7 @@ enum GenerationStatus { IDLE QUEUED PROCESSING COMPLETED FAILED }
 ## 🎬 Frontend Architecture (apps/web)
 
 ### Key Directories
+
 ```
 src/
 ├── app/
@@ -444,6 +470,7 @@ src/
 ```
 
 ### 3D/Animation Stack
+
 - **R3F**: Declarative Three.js dengan React
 - **GSAP**: Complex animations, ScrollTrigger
 - **Lenis**: Smooth scrolling (1.2s duration, exponential easing)
@@ -454,6 +481,7 @@ src/
 ## 🔐 Authentication
 
 Menggunakan **NextAuth.js v5 (Beta)** dengan:
+
 - **Credentials Provider**: Email + password (bcryptjs)
 - **OAuth Providers**: Google, GitHub (ready to configure)
 - **Prisma Adapter**: `@auth/prisma-adapter`
@@ -463,14 +491,14 @@ Menggunakan **NextAuth.js v5 (Beta)** dengan:
 
 ### Subscription Plans
 
-| Feature | Free | Pro | UMKM |
-|---------|------|-----|------|
-| **Harga/Bulan** | Gratis | Rp 199.000 | Rp 499.000 |
-| **Kredit/Bulan** | 30 | 500 | 2.000 |
-| **Max Resolusi** | 720p | 1080p | 4K |
-| **Watermark** | Ya | Tidak | Tidak |
-| **Priority Queue** | Tidak | Ya | Ya |
-| **Team Seats** | 1 | 3 | 10 |
+| Feature            | Free   | Pro        | UMKM       |
+| ------------------ | ------ | ---------- | ---------- |
+| **Harga/Bulan**    | Gratis | Rp 199.000 | Rp 499.000 |
+| **Kredit/Bulan**   | 30     | 500        | 2.000      |
+| **Max Resolusi**   | 720p   | 1080p      | 4K         |
+| **Watermark**      | Ya     | Tidak      | Tidak      |
+| **Priority Queue** | Tidak  | Ya         | Ya         |
+| **Team Seats**     | 1      | 3          | 10         |
 
 ---
 
@@ -505,6 +533,7 @@ CMD ["pnpm", "start"]
 ```
 
 ### Environment Variables (Production)
+
 ```env
 # Required
 DATABASE_URL="postgresql://..."
@@ -526,11 +555,13 @@ SENTRY_DSN=""
 ## 🧪 Development Workflow
 
 ### 1. Branch Strategy
+
 ```bash
 main ← develop ← feature/*, fix/*, chore/*
 ```
 
 ### 2. Commit Convention (Conventional Commits)
+
 ```
 feat: add text-to-video generation
 fix: resolve hydration mismatch in Hero
@@ -541,6 +572,7 @@ test: add unit tests for generation store
 ```
 
 ### 3. Changesets untuk Versioning
+
 ```bash
 # Buat changeset
 pnpm changeset
@@ -553,6 +585,7 @@ pnpm release
 ```
 
 ### 4. Pre-commit Hooks (Husky + lint-staged)
+
 ```bash
 # Setup (run once)
 pnpm prepare
@@ -594,6 +627,7 @@ klip-ai/
 5. **Open Pull Request**
 
 ### Code Style
+
 - **TypeScript strict mode** — wajib
 - **ESLint + Prettier** — format sebelum commit
 - **Conventional Commits** — wajib
