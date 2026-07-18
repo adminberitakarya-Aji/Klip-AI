@@ -74,6 +74,12 @@ const envSchema = z.object({
   // Optional
   STRIPE_SECRET_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+
+  // Upscaler (Phase 11.3)
+  REALESRGAN_API_KEY: z.string().min(1).optional(),
+  REALESRGAN_BASE_URL: z.string().url().optional(),
+  UPSCALER_API_KEY: z.string().min(1).optional(),
+  UPSCALER_BASE_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -17,6 +17,11 @@ import { prisma } from "@klipai/db/client";
 import { logger } from "@klipai/core/logger";
 import { createStorageProvider } from "./storage";
 import { StorageProvider } from "@klipai/core/storage";
+import {
+  CameraControlConfig,
+  MotionBrushConfig,
+  PhysicsConfig,
+} from "../pipeline/types";
 
 export interface GenerationJob {
   id: string;

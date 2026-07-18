@@ -10,6 +10,9 @@ import {
   ProviderCapabilities,
   ReferenceImage,
   ConsistencyConfig,
+  CameraControlConfig,
+  MotionBrushConfig,
+  PhysicsConfig,
 } from "../pipeline/types";
 import { env } from "@klipai/config";
 
@@ -124,6 +127,44 @@ export class WanProvider extends BaseProvider {
       }
 
       // Consistency config not supported by Wan - silently ignore
+
+      // Handle camera control (NEW - Phase 11.2) - limited support, pass through
+      if (opts.cameraControl) {
+        const camera = opts.cameraControl as CameraControlConfig;
+        payload.camera_control = {
+          keyframes: camera.keyframes.map((kf) => ({
+            time: kf.time,
+            position: kf.position,
+            rotation: kf.rotation,
+            ...(kf.fov !== undefined && { fov: kf.fov }),
+            ...(kf.target && { target: kf.target }),
+            ...(kf.easing && { easing: kf.easing }),
+          })),
+          ...(camera.interpolation && { interpolation: camera.interpolation }),
+        };
+      }
+
+      // Handle motion brush (NEW - Phase 11.2) - limited support
+      if (opts.motionBrush) {
+        const brush = opts.motionBrush as MotionBrushConfig;
+        payload.motion_brush = {
+          strokes: brush.strokes.map((stroke) => ({
+            id: stroke.id,
+            mask: stroke.mask,
+            motion_vector: stroke.motionVector,
+            ...(stroke.speed !== undefined && { speed: stroke.speed }),
+            ...(stroke.loop !== undefined && { loop: stroke.loop }),
+            ...(stroke.easing && { easing: stroke.easing }),
+            ...(stroke.timeRange && { time_range: stroke.timeRange }),
+          })),
+          ...(brush.globalStrength !== undefined && {
+            global_strength: brush.globalStrength,
+          }),
+        };
+      }
+
+      // Handle physics config (NEW - Phase 11.2) - not supported by Wan
+      // Silently ignore for now
     }
 
     // Legacy support: simple images array (backward compat)

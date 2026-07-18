@@ -15,6 +15,9 @@ import {
   ProviderCapabilities,
   ReferenceImage,
   ConsistencyConfig,
+  CameraControlConfig,
+  MotionBrushConfig,
+  PhysicsConfig,
 } from "../pipeline/types";
 
 interface IntentAnalysis {

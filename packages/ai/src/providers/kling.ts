@@ -10,6 +10,9 @@ import {
   ProviderCapabilities,
   ReferenceImage,
   ConsistencyConfig,
+  CameraControlConfig,
+  MotionBrushConfig,
+  PhysicsConfig,
 } from "../pipeline/types";
 import { env } from "@klipai/config";
 
@@ -143,6 +146,59 @@ export class KlingProvider extends BaseProvider {
         if (consistency.blendMode) {
           payload.blend_mode = consistency.blendMode;
         }
+      }
+
+      // Handle camera control (NEW - Phase 11.2)
+      if (opts.cameraControl) {
+        const camera = opts.cameraControl as CameraControlConfig;
+        payload.camera_control = {
+          keyframes: camera.keyframes.map((kf) => ({
+            time: kf.time,
+            position: kf.position,
+            rotation: kf.rotation,
+            ...(kf.fov !== undefined && { fov: kf.fov }),
+            ...(kf.target && { target: kf.target }),
+            ...(kf.easing && { easing: kf.easing }),
+          })),
+          ...(camera.interpolation && { interpolation: camera.interpolation }),
+          ...(camera.defaultFov && { default_fov: camera.defaultFov }),
+          ...(camera.defaultNear && { default_near: camera.defaultNear }),
+          ...(camera.defaultFar && { default_far: camera.defaultFar }),
+          ...(camera.shake && { shake: camera.shake }),
+          ...(camera.autoFrame && { auto_frame: camera.autoFrame }),
+          ...(camera.depthOfField && { depth_of_field: camera.depthOfField }),
+        };
+      }
+
+      // Handle motion brush (NEW - Phase 11.2)
+      if (opts.motionBrush) {
+        const brush = opts.motionBrush as MotionBrushConfig;
+        payload.motion_brush = {
+          strokes: brush.strokes.map((stroke) => ({
+            id: stroke.id,
+            mask: stroke.mask,
+            motion_vector: stroke.motionVector,
+            ...(stroke.speed !== undefined && { speed: stroke.speed }),
+            ...(stroke.loop !== undefined && { loop: stroke.loop }),
+            ...(stroke.easing && { easing: stroke.easing }),
+            ...(stroke.timeRange && { time_range: stroke.timeRange }),
+          })),
+          ...(brush.globalStrength !== undefined && {
+            global_strength: brush.globalStrength,
+          }),
+          ...(brush.useOpticalFlow !== undefined && {
+            use_optical_flow: brush.useOpticalFlow,
+          }),
+          ...(brush.temporalSmoothness !== undefined && {
+            temporal_smoothness: brush.temporalSmoothness,
+          }),
+        };
+      }
+
+      // Handle physics config (NEW - Phase 11.2)
+      if (opts.physics) {
+        const physics = opts.physics as PhysicsConfig;
+        payload.physics = physics;
       }
     }
 

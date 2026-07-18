@@ -122,6 +122,14 @@ export async function POST(
           video: parsed.data.video || null,
           // NEW: Store reference images (Phase 11.1)
           referenceImages: parsed.data.referenceImages as any,
+          // NEW: Store motion brush config (Phase 11.2)
+          motionBrush: (parsed.data as any).motionBrush as any,
+          // NEW: Store camera control config (Phase 11.2)
+          cameraControl: (parsed.data as any).cameraControl as any,
+          // NEW: Store physics config (Phase 11.2)
+          physics: (parsed.data as any).physics as any,
+          // NEW: Store post-processing pipeline (Phase 11.3)
+          postProcessing: (parsed.data as any).postProcessing as any,
         },
       });
 

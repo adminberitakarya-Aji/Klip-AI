@@ -95,6 +95,10 @@ export interface TextToVideoParams {
   }>;
   // NEW: Consistency for text-to-video (character generation)
   consistency?: ConsistencyConfig;
+  // NEW: Camera control (Phase 11.2)
+  cameraControl?: CameraControlConfig;
+  // NEW: Motion brush for region-based motion (Phase 11.2)
+  motionBrush?: MotionBrushConfig;
 }
 
 export interface ImageToVideoParams {
@@ -106,6 +110,10 @@ export interface ImageToVideoParams {
   // NEW: Reference images for character consistency in I2V
   referenceImages?: ReferenceImage[];
   consistency?: ConsistencyConfig;
+  // NEW: Camera control (Phase 11.2)
+  cameraControl?: CameraControlConfig;
+  // NEW: Motion brush for region-based motion (Phase 11.2)
+  motionBrush?: MotionBrushConfig;
 }
 
 export interface VideoToVideoParams {
@@ -117,6 +125,8 @@ export interface VideoToVideoParams {
   // NEW: Reference for identity preservation during style transfer
   referenceImages?: ReferenceImage[];
   consistency?: ConsistencyConfig;
+  // NEW: Camera control (Phase 11.2)
+  cameraControl?: CameraControlConfig;
 }
 
 export interface TextToImageParams {
@@ -156,6 +166,463 @@ export interface MotionControlParams {
   // NEW: Reference for subject tracking
   referenceImages?: ReferenceImage[];
   consistency?: ConsistencyConfig;
+  // NEW: Camera control (Phase 11.2)
+  cameraControl?: CameraControlConfig;
+  // NEW: Motion brush for region-based motion (Phase 11.2)
+  motionBrush?: MotionBrushConfig;
+}
+
+// ============================================
+// MOTION BRUSH & CAMERA CONTROL (Phase 11.2)
+// ============================================
+
+/**
+ * Motion Brush Configuration - Runway Gen-2 style
+ * Allows users to paint regions and define motion vectors
+ */
+export interface MotionBrushConfig {
+  // Array of brush strokes, each defining a motion region
+  strokes: MotionBrushStroke[];
+  // Global motion scale (multiplier for all strokes)
+  globalStrength?: number; // 0.1 - 2.0, default 1.0
+  // Whether to use optical flow estimation for smoother motion
+  useOpticalFlow?: boolean;
+  // Temporal smoothing factor
+  temporalSmoothness?: number; // 0.0 - 1.0
+}
+
+export interface MotionBrushStroke {
+  // Unique identifier for this stroke
+  id: string;
+  // Brush mask: base64 encoded image (grayscale) or polygon points
+  mask: MotionBrushMask;
+  // Motion vector in normalized coordinates (-1 to 1)
+  // x: horizontal, y: vertical, z: depth (optional)
+  motionVector: [number, number, number?];
+  // Speed multiplier for this specific stroke
+  speed?: number; // 0.1 - 5.0
+  // Whether motion loops or is one-shot
+  loop?: boolean;
+  // Easing function for motion
+  easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out" | "bounce";
+  // Start/end time within the video (0-1 normalized)
+  timeRange?: [number, number];
+}
+
+export interface MotionBrushMask {
+  // Either base64 image or polygon points
+  type: "image" | "polygon";
+  // Base64 encoded grayscale image (white = affected, black = not affected)
+  imageBase64?: string;
+  // Polygon points in normalized coordinates (0-1)
+  polygon?: Array<[number, number]>;
+  // Optional: feather amount for soft edges (0-1)
+  feather?: number;
+}
+
+/**
+ * Camera Control Configuration - Advanced 3D camera path editor
+ */
+export interface CameraControlConfig {
+  // Camera path defined by keyframes
+  keyframes: CameraKeyframe[];
+  // Path interpolation mode
+  interpolation?: "linear" | "bezier" | "catmull-rom" | "smooth";
+  // Default camera settings
+  defaultFov?: number; // Field of view in degrees (default: 50)
+  defaultNear?: number; // Near clipping plane (default: 0.1)
+  defaultFar?: number; // Far clipping plane (default: 1000)
+  // Camera shake / handheld simulation
+  shake?: CameraShakeConfig;
+  // Auto-framing: keep subject in frame
+  autoFrame?: AutoFrameConfig;
+  // Depth of field settings
+  depthOfField?: DepthOfFieldConfig;
+}
+
+export interface CameraKeyframe {
+  time: number; // 0-1 normalized time
+  position: [number, number, number]; // x, y, z world position
+  rotation: [number, number, number]; // pitch, yaw, roll in degrees
+  fov?: number; // Field of view override
+  // Target point to look at (for orbit/tracking)
+  target?: [number, number, number];
+  // Easing for this segment
+  easing?: "linear" | "ease-in" | "ease-out" | "ease-in-out";
+}
+
+export interface CameraShakeConfig {
+  enabled: boolean;
+  intensity: number; // 0.0 - 1.0
+  frequency: number; // Hz
+  // Per-axis shake amounts
+  translation?: [number, number, number]; // x, y, z max offset
+  rotation?: [number, number, number]; // pitch, yaw, roll max degrees
+  // Seed for reproducibility
+  seed?: number;
+}
+
+export interface AutoFrameConfig {
+  enabled: boolean;
+  // Subject to track (can be reference image index or "center")
+  subject: number | "center" | "auto";
+  // Padding around subject (0-1 normalized)
+  padding?: number;
+  // Maximum camera movement speed
+  maxSpeed?: number;
+  // Smoothing factor
+  smoothness?: number; // 0-1
+}
+
+export interface DepthOfFieldConfig {
+  enabled: boolean;
+  // Focus distance in world units
+  focusDistance?: number;
+  // Aperture (f-stop), lower = shallower DOF
+  aperture?: number; // e.g., 1.8, 2.8, 5.6, 11
+  // Focus on subject automatically
+  autoFocus?: boolean;
+  // Subject index for auto-focus
+  focusSubject?: number;
+}
+
+/**
+ * Physics Simulation Configuration (Phase 11.2)
+ */
+export interface PhysicsConfig {
+  // Cloth simulation
+  cloth?: ClothPhysicsConfig;
+  // Hair simulation
+  hair?: HairPhysicsConfig;
+  // Fluid simulation
+  fluid?: FluidPhysicsConfig;
+  // Rigid body dynamics
+  rigidBody?: RigidBodyPhysicsConfig;
+  // Global physics settings
+  gravity?: [number, number, number]; // default [0, -9.81, 0]
+  timeStep?: number; // simulation time step
+  subSteps?: number; // sub-steps per frame
+}
+
+export interface ClothPhysicsConfig {
+  enabled: boolean;
+  // Mesh/material identifiers to apply cloth physics to
+  targets: string[]; // material names or mesh IDs
+  // Cloth properties
+  stiffness?: number; // 0.0 - 1.0
+  damping?: number; // 0.0 - 1.0
+  mass?: number; // per vertex mass
+  // Wind forces
+  wind?: {
+    enabled: boolean;
+    direction: [number, number, number];
+    strength: number; // 0.0 - 10.0
+    turbulence?: number; // 0.0 - 1.0
+  };
+  // Collision objects
+  colliders?: Array<{
+    type: "sphere" | "box" | "capsule";
+    position: [number, number, number];
+    size: [number, number, number];
+  }>;
+}
+
+export interface HairPhysicsConfig {
+  enabled: boolean;
+  targets: string[]; // hair strand identifiers
+  stiffness?: number; // 0.0 - 1.0
+  damping?: number; // 0.0 - 1.0
+  length?: number; // strand length
+  segments?: number; // segments per strand
+  gravity?: [number, number, number];
+  wind?: {
+    enabled: boolean;
+    direction: [number, number, number];
+    strength: number;
+  };
+}
+
+export interface FluidPhysicsConfig {
+  enabled: boolean;
+  // Fluid domain
+  domain: {
+    min: [number, number, number];
+    max: [number, number, number];
+    resolution: number; // grid resolution
+  };
+  // Fluid properties
+  viscosity?: number; // 0.0 - 1.0
+  density?: number;
+  // Emitters
+  emitters?: Array<{
+    position: [number, number, number];
+    velocity: [number, number, number];
+    rate: number; // particles per second
+    radius: number;
+  }>;
+}
+
+export interface RigidBodyPhysicsConfig {
+  enabled: boolean;
+  objects: Array<{
+    id: string;
+    type: "box" | "sphere" | "capsule" | "convex" | "mesh";
+    position: [number, number, number];
+    rotation: [number, number, number];
+    size?: [number, number, number];
+    mass?: number;
+    friction?: number;
+    restitution?: number; // bounciness
+    isStatic?: boolean;
+    isKinematic?: boolean;
+  }>;
+}
+
+// ============================================
+// UPSCALER & QUALITY ENHANCEMENT (Phase 11.3)
+// ============================================
+
+/**
+ * Video Upscaler Configuration
+ * Supports Real-ESRGAN, Topaz-style, and other upscaling models
+ */
+export interface UpscalerConfig {
+  // Upscaling model to use
+  model: "real-esrgan" | "real-esrgan-anime" | "topaz" | "waifu2x" | "custom";
+  // Target scale factor (2x, 4x)
+  scale: 2 | 4;
+  // Target resolution (optional, overrides scale)
+  targetResolution?: "720p" | "1080p" | "4k" | "8k";
+  // Face enhancement (GFPGAN / CodeFormer)
+  faceEnhance?: boolean;
+  // Face enhancement strength
+  faceEnhanceStrength?: number; // 0.1 - 1.0
+  // Tile size for large images (to avoid OOM)
+  tileSize?: number; // 0 = auto, default 512
+  // Tile padding
+  tilePad?: number; // default 10
+  // Pre-pad for border handling
+  prePad?: number; // default 0
+  // FP32 precision (slower but more accurate)
+  fp32?: boolean;
+  // Alpha channel upscaling
+  alphaUpscale?: boolean;
+  // Custom model path (for custom models)
+  modelPath?: string;
+}
+
+/**
+ * Frame Interpolation Configuration
+ * Increases frame rate (e.g., 24fps -> 60fps) using RIFE, FILM, or other models
+ */
+export interface FrameInterpolationConfig {
+  // Interpolation model
+  model: "rife" | "rife-v4" | "film" | "gmvf" | "custom";
+  // Target FPS (must be multiple of source FPS)
+  targetFps: 30 | 60 | 120 | 240;
+  // Number of interpolation steps (for 24->60, steps=2 gives 3x = 72, steps=2.5 gives 60)
+  // Actually this is multiplier: 2x = double frames, 4x = quadruple
+  multiplier?: 2 | 4 | 8;
+  // Scene change detection threshold (0-1)
+  // Prevents interpolation across hard cuts
+  sceneThreshold?: number; // default 0.3
+  // Optical flow model (for RIFE)
+  flowModel?: "default" | "lightweight" | "ensemble";
+  // TTA (Test Time Augmentation) - slower but better quality
+  tta?: boolean;
+  // Upscale before interpolation (for better flow estimation)
+  upscaleBeforeInterp?: boolean;
+  // Custom model path
+  modelPath?: string;
+}
+
+/**
+ * Denoise & Sharpen Post-Processing Configuration
+ */
+export interface DenoiseSharpenConfig {
+  // Denoising
+  denoise?: {
+    // Denoise strength (0-1)
+    strength: number; // 0.1 - 1.0
+    // Denoise model
+    model?: "fast" | "high-quality" | "custom";
+    // Temporal denoising (uses adjacent frames)
+    temporal?: boolean;
+    // Spatial denoising only
+    spatialOnly?: boolean;
+    // Custom model path
+    modelPath?: string;
+  };
+  // Sharpening
+  sharpen?: {
+    // Sharpen strength (0-1)
+    strength: number; // 0.1 - 1.0
+    // Sharpen method
+    method: "unsharp-mask" | "lanczos" | "ai-based" | "custom";
+    // Radius for unsharp mask
+    radius?: number; // default 1.0
+    // Threshold for unsharp mask
+    threshold?: number; // default 0
+    // AI sharpen model
+    model?: string;
+    // Custom model path
+    modelPath?: string;
+  };
+  // Color correction / enhancement
+  colorEnhance?: {
+    // Auto white balance
+    autoWhiteBalance?: boolean;
+    // Auto exposure
+    autoExposure?: boolean;
+    // Contrast adjustment (-1 to 1)
+    contrast?: number;
+    // Saturation adjustment (-1 to 1)
+    saturation?: number;
+    // Brightness adjustment (-1 to 1)
+    brightness?: number;
+    // Gamma correction
+    gamma?: number; // default 1.0
+    // LUT file path
+    lutPath?: string;
+  };
+  // Deblocking (for compressed sources)
+  deblock?: {
+    enabled: boolean;
+    strength?: number; // 0.1 - 1.0
+  };
+  // Deflicker (for timelapse/old footage)
+  deflicker?: {
+    enabled: boolean;
+    windowSize?: number; // frames
+    strength?: number;
+  };
+}
+
+/**
+ * Complete Post-Processing Pipeline Configuration
+ */
+export interface PostProcessingPipeline {
+  // Upscaling (optional)
+  upscaler?: UpscalerConfig;
+  // Frame interpolation (optional)
+  frameInterpolation?: FrameInterpolationConfig;
+  // Denoise & sharpen (optional)
+  denoiseSharpen?: DenoiseSharpenConfig;
+  // Order of operations (default: upscale -> interpolate -> denoise/sharpen)
+  // Can be customized for specific workflows
+  order?: Array<"upscale" | "interpolate" | "denoise_sharpen">;
+  // Output format
+  outputFormat?: "mp4" | "webm" | "mov" | "gif" | "prores";
+  // Output codec
+  outputCodec?: "h264" | "h265" | "vp9" | "av1" | "prores";
+  // Output quality/bitrate
+  outputQuality?: "low" | "medium" | "high" | "lossless";
+  // Custom ffmpeg args
+  ffmpegArgs?: string[];
+}
+
+/**
+ * Upscaler Job Result
+ */
+export interface UpscalerJobResult {
+  id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  progress: number;
+  inputUrl: string;
+  outputUrl?: string;
+  error?: string;
+  processingTime?: number; // milliseconds
+  inputMetadata?: {
+    width: number;
+    height: number;
+    fps: number;
+    duration: number;
+    codec: string;
+    format: string;
+  };
+  outputMetadata?: {
+    width: number;
+    height: number;
+    fps: number;
+    duration: number;
+    codec: string;
+    format: string;
+    filesize: number;
+  };
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number;
+}
+
+/**
+ * Upscaler Provider Interface
+ */
+export interface UpscalerProvider {
+  name: string;
+  supportedModels: string[];
+  maxResolution: string;
+  maxDuration: number; // seconds
+
+  /**
+   * Submit an upscaling job
+   */
+  upscale(input: {
+    videoUrl: string;
+    config: UpscalerConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a frame interpolation job
+   */
+  interpolate(input: {
+    videoUrl: string;
+    config: FrameInterpolationConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a denoise/sharpen job
+   */
+  denoiseSharpen(input: {
+    videoUrl: string;
+    config: DenoiseSharpenConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a full post-processing pipeline job
+   */
+  processPipeline(input: {
+    videoUrl: string;
+    pipeline: PostProcessingPipeline;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Get job status
+   */
+  getStatus(jobId: string): Promise<UpscalerJobResult>;
+
+  /**
+   * Cancel job
+   */
+  cancel(jobId: string): Promise<void>;
+
+  /**
+   * Get supported models and their capabilities
+   */
+  getModels(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      type: "upscale" | "interpolate" | "denoise" | "sharpen";
+      maxScale?: number;
+      maxFpsMultiplier?: number;
+      supportedFormats: string[];
+      pricing: { perSecond?: number; perFrame?: number };
+    }>
+  >;
 }
 
 // ============================================
@@ -177,6 +644,17 @@ export interface ProviderCapabilities {
     faceId?: boolean; // FaceID / identity preservation
     subjectConsistency?: boolean; // Subject consistency (non-face)
     temporalConsistency?: boolean; // Frame-to-frame consistency
+  };
+  // NEW: Upscaler & Quality Enhancement support (Phase 11.3)
+  upscalerFeatures?: {
+    videoUpscale?: boolean;
+    frameInterpolation?: boolean;
+    denoise?: boolean;
+    sharpen?: boolean;
+    faceEnhance?: boolean;
+    colorCorrect?: boolean;
+    maxUpscaleFactor?: number; // 2, 4, 8
+    maxInterpolationFps?: number; // 60, 120, 240
   };
 }
 

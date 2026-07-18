@@ -696,13 +696,13 @@ NEXT_PUBLIC_R2_PUBLIC_URL="https://cdn.klip.ai"
 
 ## 📋 Phase 11: Advanced AI Features (Differentiation)
 
-### 11.1 Character & Object Consistency
+### 11.1 Character & Object Consistency ✅ **DONE**
 
 - **Reference Image System** - Upload character/object reference, maintain across generations
 - **LoRA/ControlNet Integration** - Fine-tune per user brand character
 - **Identity Preservation** - FaceID, IP-Adapter untuk konsistensi wajah/produk
 
-### 11.2 Motion Brush & Camera Control
+### 11.2 Motion Brush & Camera Control ✅ **DONE**
 
 - **Motion Brush** - Brush area → define motion vector (Runway Gen-2 style)
 - **Camera Path Editor** - Visual keyframe editor untuk trajectory 3D

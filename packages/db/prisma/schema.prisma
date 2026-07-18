@@ -23,6 +23,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   generations   Generation[]
+  upscalerJobs  UpscalerJob[]
 
   @@map("users")
 }
@@ -76,6 +77,14 @@ model Generation {
   video       String?
   // NEW: Structured reference images with roles/weights (Phase 11.1)
   referenceImages Json?
+  // NEW: Motion brush configuration (Phase 11.2)
+  motionBrush Json?
+  // NEW: Camera control configuration (Phase 11.2)
+  cameraControl Json?
+  // NEW: Physics configuration (Phase 11.2)
+  physics Json?
+  // NEW: Post-processing pipeline (Phase 11.3)
+  postProcessing Json?
   status      GenerationStatus @default(QUEUED)
   progress    Int              @default(0)
   resultUrl   String?
@@ -91,11 +100,64 @@ model Generation {
   completedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upscalerJobs UpscalerJob[]
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
   @@map("generations")
+}
+
+// ============================================
+// UPSCALER JOBS (Phase 11.3)
+// ============================================
+
+model UpscalerJob {
+  id          String   @id @default(cuid())
+  userId      String
+  // Reference to original generation (optional)
+  generationId String?
+  // Input video URL
+  inputUrl    String
+  // Post-processing pipeline config
+  pipeline    Json
+  // Job status
+  status      UpscalerJobStatus @default(QUEUED)
+  progress    Int              @default(0)
+  // Output video URL
+  outputUrl   String?
+  error       String?
+  // Processing time in milliseconds
+  processingTime Int?
+  // Input metadata
+  inputMetadata Json?
+  // Output metadata
+  outputMetadata Json?
+  // Provider used
+  provider    String?
+  // Provider job ID
+  providerId  String?
+  // Webhook URL for callbacks
+  webhookUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generation Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([status])
+  @@index([generationId])
+  @@index([createdAt])
+  @@map("upscaler_jobs")
+}
+
+enum UpscalerJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
 }
 
 enum Role {
