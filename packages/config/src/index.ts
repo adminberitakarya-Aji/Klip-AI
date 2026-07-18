@@ -80,6 +80,26 @@ const envSchema = z.object({
   REALESRGAN_BASE_URL: z.string().url().optional(),
   UPSCALER_API_KEY: z.string().min(1).optional(),
   UPSCALER_BASE_URL: z.string().url().optional(),
+
+  // Audio - ElevenLabs (Phase 11.4)
+  ELEVENLABS_API_KEY: z.string().min(1).optional(),
+  ELEVENLABS_BASE_URL: z.string().url().optional(),
+
+  // Audio - Coqui TTS (Phase 11.4)
+  COQUI_API_KEY: z.string().min(1).optional(),
+  COQUI_BASE_URL: z.string().url().optional(),
+
+  // Audio - SadTalker/Wav2Lip (Phase 11.4)
+  SADTALKER_API_KEY: z.string().min(1).optional(),
+  SADTALKER_BASE_URL: z.string().url().optional(),
+  WAV2LIP_API_KEY: z.string().min(1).optional(),
+  WAV2LIP_BASE_URL: z.string().url().optional(),
+
+  // Audio - Suno/Udio (Phase 11.4)
+  SUNO_API_KEY: z.string().min(1).optional(),
+  SUNO_BASE_URL: z.string().url().optional(),
+  UDIO_API_KEY: z.string().min(1).optional(),
+  UDIO_BASE_URL: z.string().url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

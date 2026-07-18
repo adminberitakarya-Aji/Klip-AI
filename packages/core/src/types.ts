@@ -1,19 +1,24 @@
 // AI Generation Types
 export enum GenerationType {
-  TEXT_TO_VIDEO = 'text-to-video',
-  IMAGE_TO_VIDEO = 'image-to-video',
-  VIDEO_TO_VIDEO = 'video-to-video',
-  TEXT_TO_IMAGE = 'text-to-image',
-  IMAGE_TO_IMAGE = 'image-to-image',
-  MOTION_CONTROL = 'motion-control',
+  TEXT_TO_VIDEO = "text-to-video",
+  IMAGE_TO_VIDEO = "image-to-video",
+  VIDEO_TO_VIDEO = "video-to-video",
+  TEXT_TO_IMAGE = "text-to-image",
+  IMAGE_TO_IMAGE = "image-to-image",
+  MOTION_CONTROL = "motion-control",
+  // Phase 11.5: Advanced Generation Modes
+  VIDEO_TO_VIDEO_STYLE_TRANSFER = "video-to-video-style-transfer",
+  INPAINTING_OUTPAINTING = "inpainting-outpainting",
+  DEPTH_NORMAL_CONTROL = "depth-normal-control",
+  MULTI_SHOT_STORYBOARD = "multi-shot-storyboard",
 }
 
 export enum GenerationStatus {
-  IDLE = 'idle',
-  QUEUED = 'queued',
-  PROCESSING = 'processing',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
+  IDLE = "idle",
+  QUEUED = "queued",
+  PROCESSING = "processing",
+  COMPLETED = "completed",
+  FAILED = "failed",
 }
 
 // Re-export as const for type-only imports if needed
@@ -39,14 +44,14 @@ export interface GenerationResponse {
 
 // User Types - Match Prisma enums exactly (uppercase)
 export enum Role {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
+  USER = "USER",
+  ADMIN = "ADMIN",
 }
 
 export enum Subscription {
-  FREE = 'FREE',
-  PRO = 'PRO',
-  UMKM = 'UMKM',
+  FREE = "FREE",
+  PRO = "PRO",
+  UMKM = "UMKM",
 }
 
 export interface User {
@@ -66,7 +71,7 @@ export interface SubscriptionPlan {
   price: number;
   creditsPerMonth: number;
   features: string[];
-  maxResolution: '720p' | '1080p' | '4k';
+  maxResolution: "720p" | "1080p" | "4k";
   watermark: boolean;
   priorityQueue: boolean;
   teamSeats: number;

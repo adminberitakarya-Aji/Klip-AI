@@ -285,6 +285,130 @@ RULES:
 - Position: x,y,z in world space
 - Rotation: pitch,yaw,roll in degrees
 - Subject position for target tracking`,
+
+      // Phase 11.5: Advanced Generation Modes
+      [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]: `${basePrompt}
+
+TYPE: VIDEO_TO_VIDEO_STYLE_TRANSFER
+SCHEMA:
+{
+  "prompt": "style transfer description (e.g., 'convert to 1990s anime style with cel shading, film grain, limited color palette')",
+  "negativePrompt": "structure collapse, flickering, temporal inconsistency, loss of detail",
+  "type": "video-to-video-style-transfer",
+  "params": {
+    "style": "cinematic|anime|claymation|paper-cutout|watercolor|oil-painting|sketch|pixel-art|custom",
+    "strength": 0.1-1.0,
+    "preserveStructure": true,
+    "controlNetConditioning": "canny|depth|normal|openpose|seg|lineart|mlsd",
+    "controlNetStrength": 0.1-1.0,
+    "consistencyFrames": 8|16|24,
+    "loraPath": "optional custom LoRA path",
+    "loraScale": 0.1-1.0
+  },
+  "metadata": {...}
+}
+
+RULES:
+- Style: be extremely specific (not just "anime" but "1990s cel anime, film grain, limited palette, VHS artifacts")
+- Strength: 0.3 subtle style influence, 0.6 balanced, 0.9 full stylization
+- preserveStructure: true for product/character consistency
+- controlNetConditioning: canny for edges, depth for 3D structure, openpose for characters
+- loraPath/scale for custom trained styles`,
+
+      [GenerationType.INPAINTING_OUTPAINTING]: `${basePrompt}
+
+TYPE: INPAINTING_OUTPAINTING
+SCHEMA:
+{
+  "prompt": "what to generate in the masked/extended region (e.g., 'extend the landscape with mountains and sunset sky', 'remove the person and fill with clean background')",
+  "negativePrompt": "seams, visible edges, color mismatch, artifacts, blur",
+  "type": "inpainting-outpainting",
+  "params": {
+    "mode": "inpaint|outpaint|both",
+    "inputUrl": "image/video URL",
+    "maskUrl": "optional mask for inpainting (white=modify, black=keep)",
+    "outpaint": {"left": 0, "right": 0, "top": 0, "bottom": 0, "targetAspectRatio": "9:16|16:9|1:1|4:3|3:4|21:9"},
+    "strength": 0.1-1.0,
+    "variations": 1-4,
+    "blendMode": "seamless|feather|poisson",
+    "featherAmount": 0-100,
+    "controlNetConditioning": "canny|depth|normal|lineart",
+    "controlNetStrength": 0.1-1.0
+  },
+  "metadata": {...}
+}
+
+RULES:
+- Mode "inpaint": modify masked regions only
+- Mode "outpaint": extend canvas borders (provide outpaint amounts or targetAspectRatio)
+- Mode "both": inpaint mask then outpaint
+- Strength: 0.3 subtle, 0.6 moderate, 0.9 complete reimagination
+- blendMode: seamless for textures, feather for organic, poisson for gradients
+- controlNet for structure guidance during outpainting`,
+
+      [GenerationType.DEPTH_NORMAL_CONTROL]: `${basePrompt}
+
+TYPE: DEPTH_NORMAL_CONTROL
+SCHEMA:
+{
+  "prompt": "generation prompt guided by depth/normal map (e.g., 'futuristic cityscape with neon lights, volumetric fog')",
+  "negativePrompt": "flat lighting, wrong geometry, distorted perspective",
+  "type": "depth-normal-control",
+  "params": {
+    "inputType": "depth|normal|segmentation|canny|openpose|lineart",
+    "inputUrl": "URL to depth map, normal map, or source image",
+    "strength": 0.1-1.0,
+    "guidanceScale": 1.0-20.0,
+    "temporalConsistency": true,
+    "consistencyFrames": 8|16|24
+  },
+  "metadata": {...}
+}
+
+RULES:
+- inputType: depth for 3D structure, normal for surface orientation, segmentation for semantic regions
+- strength: 0.3 loose guidance, 0.7 strong adherence, 1.0 strict geometry
+- guidanceScale: higher = more prompt adherence, lower = more input adherence
+- temporalConsistency: true for video to prevent flickering`,
+
+      [GenerationType.MULTI_SHOT_STORYBOARD]: `${basePrompt}
+
+TYPE: MULTI_SHOT_STORYBOARD
+SCHEMA:
+{
+  "prompt": "master prompt describing the full narrative (e.g., 'product launch video: establishing wide shot of office, medium shot of team collaborating, closeup of product features, hero shot with logo')",
+  "negativePrompt": "inconsistent style, jarring transitions, mismatched lighting, character drift",
+  "type": "multi-shot-storyboard",
+  "params": {
+    "brief": "product launch video for new skincare line",
+    "shotCount": 5-10,
+    "shotDuration": 3-10,
+    "totalDuration": 15-60,
+    "aspectRatio": "9:16|16:9|1:1|4:3|3:4",
+    "style": "cinematic|commercial|social|documentary|vlog|music-video",
+    "shotTypes": ["wide", "medium", "closeup", "extreme-closeup", "establishing", "detail", "pov", "overhead"],
+    "cameraMovements": ["static", "pan", "zoom", "dolly", "crane", "handheld", "orbit"],
+    "characterReference": [{url: "...", role: "character", weight: 0.8}],
+    "autoEdit": {
+      "enabled": true,
+      "transitionStyle": "cut|crossfade|wipe|zoom|slide",
+      "transitionDuration": 0.5-2.0,
+      "addMusic": true,
+      "musicPrompt": "upbeat corporate ambient",
+      "addCaptions": true,
+      "captionStyle": "tiktok|instagram|youtube|minimal"
+    }
+  },
+  "metadata": {...}
+}
+
+RULES:
+- shotCount: 5-10 shots for typical social video
+- shotDuration: 3-5s for fast-paced, 5-10s for cinematic
+- shotTypes: mix wide/medium/closeup for visual variety
+- cameraMovements: match shot type (static for interviews, dolly for reveals)
+- autoEdit: stitches shots, adds transitions, music, captions
+- consistency: CRITICAL across shots - use characterReference`,
     };
 
     return typePrompts[type];
@@ -538,6 +662,9 @@ Generate the complete structured prompt.`;
             priority: "quality",
           },
         };
+
+      default:
+        throw new Error(`Unsupported generation type: ${input.type}`);
     }
   }
 

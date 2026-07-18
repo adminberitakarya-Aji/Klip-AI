@@ -25,12 +25,23 @@ export class WanProvider extends BaseProvider {
       GenerationType.TEXT_TO_VIDEO,
       GenerationType.IMAGE_TO_VIDEO,
       GenerationType.TEXT_TO_IMAGE,
+      // Phase 11.5: Limited support for advanced modes
+      GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER,
+      GenerationType.INPAINTING_OUTPAINTING,
+      GenerationType.DEPTH_NORMAL_CONTROL,
+      GenerationType.MULTI_SHOT_STORYBOARD,
     ],
     maxDuration: 15,
     maxResolution: "720p",
     pricing: { perSecond: 0.05, perImage: 0.008 },
-    strengths: ["fast", "cheap"],
-    weaknesses: ["limited types", "lower quality"],
+    strengths: ["fast", "cheap", "basic_style_transfer"],
+    weaknesses: [
+      "limited types",
+      "lower quality",
+      "no_consistency",
+      "no_physics",
+      "no_controlnet",
+    ],
   };
 
   constructor(config?: Partial<ProviderConfig>) {
@@ -103,6 +114,11 @@ export class WanProvider extends BaseProvider {
       [GenerationType.TEXT_TO_IMAGE]: "/api/v1/text2image",
       [GenerationType.IMAGE_TO_IMAGE]: "/api/v1/image2image",
       [GenerationType.MOTION_CONTROL]: "/api/v1/motion-control",
+      // Phase 11.5: Advanced Generation Modes (Wan may support limited)
+      [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]: "/api/v1/style-transfer",
+      [GenerationType.INPAINTING_OUTPAINTING]: "/api/v1/inpainting-outpainting",
+      [GenerationType.DEPTH_NORMAL_CONTROL]: "/api/v1/depth-normal-control",
+      [GenerationType.MULTI_SHOT_STORYBOARD]: "/api/v1/multi-shot-storyboard",
     };
     return endpoints[type];
   }
@@ -165,6 +181,74 @@ export class WanProvider extends BaseProvider {
 
       // Handle physics config (NEW - Phase 11.2) - not supported by Wan
       // Silently ignore for now
+
+      // ============================================
+      // PHASE 11.5: Advanced Generation Modes (Limited support)
+      // ============================================
+      switch (type) {
+        case GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER: {
+          if (opts.styleReference)
+            payload.style_reference = opts.styleReference;
+          if (opts.strength !== undefined) payload.strength = opts.strength;
+          if (opts.mode) payload.mode = opts.mode;
+          if (opts.preserveStructure !== undefined)
+            payload.preserve_structure = opts.preserveStructure;
+          // ControlNet not fully supported by Wan, but pass through if provided
+          if (opts.controlNetConditioning)
+            payload.controlnet_conditioning = opts.controlNetConditioning;
+          if (opts.controlNetStrength !== undefined)
+            payload.controlnet_strength = opts.controlNetStrength;
+          if (opts.consistencyFrames !== undefined)
+            payload.consistency_frames = opts.consistencyFrames;
+          break;
+        }
+        case GenerationType.INPAINTING_OUTPAINTING: {
+          if (opts.mode) payload.mode = opts.mode;
+          if (opts.inputUrl) payload.input_url = opts.inputUrl;
+          if (opts.maskUrl) payload.mask_url = opts.maskUrl;
+          if (opts.outpaint) payload.outpaint = opts.outpaint;
+          if (opts.prompt) payload.prompt = opts.prompt;
+          if (opts.negativePrompt)
+            payload.negative_prompt = opts.negativePrompt;
+          if (opts.strength !== undefined) payload.strength = opts.strength;
+          if (opts.variations !== undefined)
+            payload.variations = opts.variations;
+          if (opts.blendMode) payload.blend_mode = opts.blendMode;
+          if (opts.featherAmount !== undefined)
+            payload.feather_amount = opts.featherAmount;
+          break;
+        }
+        case GenerationType.DEPTH_NORMAL_CONTROL: {
+          if (opts.inputType) payload.input_type = opts.inputType;
+          if (opts.inputUrl) payload.input_url = opts.inputUrl;
+          if (opts.strength !== undefined) payload.strength = opts.strength;
+          if (opts.guidanceScale !== undefined)
+            payload.guidance_scale = opts.guidanceScale;
+          if (opts.temporalConsistency !== undefined)
+            payload.temporal_consistency = opts.temporalConsistency;
+          if (opts.consistencyFrames !== undefined)
+            payload.consistency_frames = opts.consistencyFrames;
+          break;
+        }
+        case GenerationType.MULTI_SHOT_STORYBOARD: {
+          if (opts.brief) payload.brief = opts.brief;
+          if (opts.shotCount !== undefined) payload.shot_count = opts.shotCount;
+          if (opts.shotDuration !== undefined)
+            payload.shot_duration = opts.shotDuration;
+          if (opts.totalDuration !== undefined)
+            payload.total_duration = opts.totalDuration;
+          if (opts.aspectRatio) payload.aspect_ratio = opts.aspectRatio;
+          if (opts.style) payload.style = opts.style;
+          if (opts.shotTypes) payload.shot_types = opts.shotTypes;
+          if (opts.cameraMovements)
+            payload.camera_movements = opts.cameraMovements;
+          if (opts.characterReference)
+            payload.character_reference = opts.characterReference;
+          if (opts.autoEdit) payload.auto_edit = opts.autoEdit;
+          if (opts.outputFormat) payload.output_format = opts.outputFormat;
+          break;
+        }
+      }
     }
 
     // Legacy support: simple images array (backward compat)

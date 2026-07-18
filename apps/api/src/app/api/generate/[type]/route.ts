@@ -23,6 +23,11 @@ const VALID_TYPES: GenerationType[] = [
   GenerationType.TEXT_TO_IMAGE,
   GenerationType.IMAGE_TO_IMAGE,
   GenerationType.MOTION_CONTROL,
+  // Phase 11.5: Advanced Generation Modes
+  GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER,
+  GenerationType.INPAINTING_OUTPAINTING,
+  GenerationType.DEPTH_NORMAL_CONTROL,
+  GenerationType.MULTI_SHOT_STORYBOARD,
 ];
 
 export async function POST(

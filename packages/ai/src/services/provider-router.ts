@@ -5,6 +5,12 @@ import {
   PROVIDER_CAPABILITIES,
   GenerationType,
   ProviderRequest,
+  AudioProvider,
+  TTSConfig,
+  SoundEffectsConfig,
+  LipSyncConfig,
+  BackgroundMusicConfig,
+  AudioJobResult,
 } from "../pipeline/types";
 import { AIProvider, GenerationRequest } from "../types";
 import { logger } from "@klipai/core/logger";
@@ -18,6 +24,7 @@ interface CircuitBreakerState {
 
 export class ProviderRouter {
   private providers: Map<string, AIProvider> = new Map();
+  private audioProviders: Map<string, AudioProvider> = new Map();
   private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
   private readonly CIRCUIT_BREAKER_THRESHOLD = 3;
   private readonly CIRCUIT_BREAKER_TIMEOUT = 60000; // 1 minute
@@ -38,8 +45,17 @@ export class ProviderRouter {
     logger.info(`Provider registered: ${provider.name}`);
   }
 
+  registerAudioProvider(provider: AudioProvider): void {
+    this.audioProviders.set(provider.name, provider);
+    logger.info(`Audio provider registered: ${provider.name}`);
+  }
+
   getProvider(name: string): AIProvider | undefined {
     return this.providers.get(name);
+  }
+
+  getAudioProvider(name: string): AudioProvider | undefined {
+    return this.audioProviders.get(name);
   }
 
   async generate(
@@ -232,6 +248,70 @@ export class ProviderRouter {
         if (p.subjectPosition) payload.subject_position = p.subjectPosition;
         break;
       }
+      case GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER: {
+        const p = params as any;
+        payload.style_reference = p.styleReference;
+        payload.strength = p.strength;
+        payload.mode = p.mode;
+        payload.preserve_structure = p.preserveStructure;
+        if (p.controlNetConditioning)
+          payload.control_net_conditioning = p.controlNetConditioning;
+        if (p.controlNetStrength)
+          payload.control_net_strength = p.controlNetStrength;
+        if (p.consistencyFrames)
+          payload.consistency_frames = p.consistencyFrames;
+        if (p.loraPath) payload.lora_path = p.loraPath;
+        if (p.loraScale) payload.lora_scale = p.loraScale;
+        break;
+      }
+      case GenerationType.INPAINTING_OUTPAINTING: {
+        const p = params as any;
+        payload.mode = p.mode;
+        payload.input_url = p.inputUrl;
+        if (p.maskUrl) payload.mask = p.maskUrl;
+        if (p.outpaint) payload.outpaint = p.outpaint;
+        payload.prompt = p.prompt;
+        if (p.negativePrompt) payload.negative_prompt = p.negativePrompt;
+        if (p.strength) payload.strength = p.strength;
+        if (p.variations) payload.variations = p.variations;
+        if (p.blendMode) payload.blend_mode = p.blendMode;
+        if (p.featherAmount) payload.feather_amount = p.featherAmount;
+        if (p.controlNetConditioning)
+          payload.control_net_conditioning = p.controlNetConditioning;
+        if (p.controlNetStrength)
+          payload.control_net_strength = p.controlNetStrength;
+        break;
+      }
+      case GenerationType.DEPTH_NORMAL_CONTROL: {
+        const p = params as any;
+        payload.input_type = p.inputType;
+        payload.input_url = p.inputUrl;
+        payload.strength = p.strength;
+        if (p.guidanceScale) payload.guidance_scale = p.guidanceScale;
+        payload.prompt = p.prompt;
+        if (p.negativePrompt) payload.negative_prompt = p.negativePrompt;
+        if (p.temporalConsistency)
+          payload.temporal_consistency = p.temporalConsistency;
+        if (p.consistencyFrames)
+          payload.consistency_frames = p.consistencyFrames;
+        break;
+      }
+      case GenerationType.MULTI_SHOT_STORYBOARD: {
+        const p = params as any;
+        payload.brief = p.brief;
+        payload.shot_count = p.shotCount;
+        payload.shot_duration = p.shotDuration;
+        payload.total_duration = p.totalDuration;
+        payload.aspect_ratio = p.aspectRatio;
+        if (p.style) payload.style = p.style;
+        if (p.shotTypes) payload.shot_types = p.shotTypes;
+        if (p.cameraMovements) payload.camera_movements = p.cameraMovements;
+        if (p.characterReference)
+          payload.character_reference = p.characterReference;
+        if (p.autoEdit) payload.auto_edit = p.autoEdit;
+        if (p.outputFormat) payload.output_format = p.outputFormat;
+        break;
+      }
     }
 
     // Provider-specific endpoint mapping
@@ -243,6 +323,15 @@ export class ProviderRouter {
         [GenerationType.TEXT_TO_IMAGE]: "/v1/generate/text-to-image",
         [GenerationType.IMAGE_TO_IMAGE]: "/v1/generate/image-to-image",
         [GenerationType.MOTION_CONTROL]: "/v1/generate/motion-control",
+        // Phase 11.5: Advanced Generation Modes
+        [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]:
+          "/v1/generate/video-to-video-style-transfer",
+        [GenerationType.INPAINTING_OUTPAINTING]:
+          "/v1/generate/inpainting-outpainting",
+        [GenerationType.DEPTH_NORMAL_CONTROL]:
+          "/v1/generate/depth-normal-control",
+        [GenerationType.MULTI_SHOT_STORYBOARD]:
+          "/v1/generate/multi-shot-storyboard",
       },
       kling: {
         [GenerationType.TEXT_TO_VIDEO]: "/v1/videos/text2video",
@@ -251,6 +340,15 @@ export class ProviderRouter {
         [GenerationType.TEXT_TO_IMAGE]: "/v1/images/text2image",
         [GenerationType.IMAGE_TO_IMAGE]: "/v1/images/image2image",
         [GenerationType.MOTION_CONTROL]: "/v1/videos/motion-control",
+        // Phase 11.5: Advanced Generation Modes
+        [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]:
+          "/v1/videos/style-transfer",
+        [GenerationType.INPAINTING_OUTPAINTING]:
+          "/v1/videos/inpainting-outpainting",
+        [GenerationType.DEPTH_NORMAL_CONTROL]:
+          "/v1/videos/depth-normal-control",
+        [GenerationType.MULTI_SHOT_STORYBOARD]:
+          "/v1/videos/multi-shot-storyboard",
       },
       wan: {
         [GenerationType.TEXT_TO_VIDEO]: "/api/v1/text2video",
@@ -259,6 +357,13 @@ export class ProviderRouter {
         [GenerationType.TEXT_TO_IMAGE]: "/api/v1/text2image",
         [GenerationType.IMAGE_TO_IMAGE]: "/api/v1/image2image",
         [GenerationType.MOTION_CONTROL]: "/api/v1/motion-control",
+        // Phase 11.5: Advanced Generation Modes (Wan may not support all)
+        [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]:
+          "/api/v1/style-transfer",
+        [GenerationType.INPAINTING_OUTPAINTING]:
+          "/api/v1/inpainting-outpainting",
+        [GenerationType.DEPTH_NORMAL_CONTROL]: "/api/v1/depth-normal-control",
+        [GenerationType.MULTI_SHOT_STORYBOARD]: "/api/v1/multi-shot-storyboard",
       },
     };
 

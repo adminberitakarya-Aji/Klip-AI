@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./services/*": "./src/services/*.ts",
-    "./providers/*": "./src/providers/*.ts"
+    "./providers/*": "./src/providers/*.ts",
+    "./pipeline/types": "./src/pipeline/types.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

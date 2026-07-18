@@ -286,6 +286,170 @@ export interface DepthOfFieldConfig {
   focusSubject?: number;
 }
 
+// ============================================
+// ADVANCED GENERATION MODES (Phase 11.5)
+// ============================================
+
+/**
+ * Video-to-Video Style Transfer Configuration
+ * Transform video style while preserving structure/content
+ */
+export interface VideoToVideoStyleTransferConfig {
+  // Style reference
+  styleReference: string; // URL to style reference image/video or style name
+  // Style strength (0.1 - 1.0)
+  strength: number;
+  // Style transfer mode
+  mode:
+    | "cinematic"
+    | "anime"
+    | "claymation"
+    | "paper-cutout"
+    | "watercolor"
+    | "oil-painting"
+    | "sketch"
+    | "pixel-art"
+    | "custom";
+  // Preserve structure using ControlNet
+  preserveStructure: boolean;
+  // ControlNet conditioning
+  controlNetConditioning?:
+    "canny" | "depth" | "normal" | "openpose" | "seg" | "lineart" | "mlsd";
+  // ControlNet strength
+  controlNetStrength?: number; // 0.1 - 1.0
+  // Temporal consistency frames
+  consistencyFrames?: number; // 8, 16, 24
+  // Reference images for identity preservation
+  referenceImages?: ReferenceImage[];
+  // Consistency config
+  consistency?: ConsistencyConfig;
+  // Custom LoRA/model path for style
+  loraPath?: string;
+  loraScale?: number; // 0.1 - 1.0
+}
+
+/**
+ * Inpainting/Outpainting Configuration
+ * Extend canvas, remove objects, fill regions
+ */
+export interface InpaintingOutpaintingConfig {
+  // Operation mode
+  mode: "inpaint" | "outpaint" | "both";
+  // Input image/video URL
+  inputUrl: string;
+  // Mask for inpainting (white = inpaint area, black = keep)
+  maskUrl?: string;
+  // Outpaint direction and amount
+  outpaint?: {
+    left?: number; // pixels or percentage
+    right?: number;
+    top?: number;
+    bottom?: number;
+    // Or use aspect ratio target
+    targetAspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4" | "21:9";
+  };
+  // Prompt for the inpainted/outpainted region
+  prompt: string;
+  // Negative prompt
+  negativePrompt?: string;
+  // Strength for inpainting (how much to change)
+  strength?: number; // 0.1 - 1.0
+  // Number of variations
+  variations?: number; // 1-4
+  // Blend mode for seamless edges
+  blendMode?: "seamless" | "feather" | "poisson";
+  // Feather amount for blending
+  featherAmount?: number; // 0-100 pixels
+  // Use ControlNet for structure guidance
+  controlNetConditioning?: "canny" | "depth" | "normal" | "lineart";
+  controlNetStrength?: number; // 0.1 - 1.0
+}
+
+/**
+ * Depth/Normal Map Control Configuration
+ * Geometric control using depth maps, normal maps, segmentation
+ */
+export interface DepthNormalMapConfig {
+  // Input source
+  inputType:
+    "depth" | "normal" | "segmentation" | "canny" | "openpose" | "lineart";
+  // Input URL (depth map, normal map, or source image to extract from)
+  inputUrl: string;
+  // Control strength
+  strength: number; // 0.1 - 1.0
+  // Guidance scale
+  guidanceScale?: number; // 1.0 - 20.0
+  // Prompt for generation
+  prompt: string;
+  negativePrompt?: string;
+  // For video: temporal consistency
+  temporalConsistency?: boolean;
+  consistencyFrames?: number;
+  // Reference images
+  referenceImages?: ReferenceImage[];
+  consistency?: ConsistencyConfig;
+}
+
+/**
+ * Multi-shot Storyboard Configuration
+ * Generate 5-10 shots from a single prompt with auto-edit
+ */
+export interface MultiShotStoryboardConfig {
+  // Main prompt / brief
+  brief: string;
+  // Number of shots to generate
+  shotCount: number; // 3-10
+  // Shot duration (each)
+  shotDuration: number; // 3-10 seconds
+  // Total duration
+  totalDuration: number; // shotCount * shotDuration
+  // Aspect ratio
+  aspectRatio: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
+  // Style preset
+  style?:
+    | "cinematic"
+    | "commercial"
+    | "social"
+    | "documentary"
+    | "vlog"
+    | "music-video";
+  // Shot types to include
+  shotTypes?: Array<
+    | "wide"
+    | "medium"
+    | "closeup"
+    | "extreme-closeup"
+    | "establishing"
+    | "detail"
+    | "pov"
+    | "overhead"
+  >;
+  // Camera movement preferences
+  cameraMovements?: Array<
+    "static" | "pan" | "zoom" | "dolly" | "crane" | "handheld" | "orbit"
+  >;
+  // Character consistency
+  characterReference?: ReferenceImage[];
+  // Auto-edit settings
+  autoEdit?: {
+    enabled: boolean;
+    transitionStyle?: "cut" | "crossfade" | "wipe" | "zoom" | "slide";
+    transitionDuration?: number; // seconds
+    addMusic?: boolean;
+    musicPrompt?: string;
+    addCaptions?: boolean;
+    captionStyle?: "tiktok" | "instagram" | "youtube" | "minimal";
+  };
+  // Consistency across shots
+  consistency?: ConsistencyConfig;
+  // Output format
+  outputFormat?: "individual" | "stitched" | "both";
+}
+
+// ============================================
+// PHYSICS SIMULATION (Phase 11.2)
+// ============================================
+
 /**
  * Physics Simulation Configuration (Phase 11.2)
  */
@@ -376,6 +540,242 @@ export interface RigidBodyPhysicsConfig {
     isStatic?: boolean;
     isKinematic?: boolean;
   }>;
+}
+
+// ============================================
+// AUDIO & MULTI-MODAL (Phase 11.4)
+// ============================================
+
+/**
+ * Text-to-Speech Configuration
+ * Supports ElevenLabs, Coqui, and other TTS providers
+ */
+export interface TTSConfig {
+  // TTS provider
+  provider: "elevenlabs" | "coqui" | "azure" | "google" | "custom";
+  // Text to synthesize
+  text: string;
+  // Voice ID or name
+  voiceId: string;
+  // Language (for multilingual voices)
+  language?: string; // e.g., "id" for Indonesian
+  // Voice settings
+  stability?: number; // 0.0 - 1.0 (ElevenLabs)
+  similarityBoost?: number; // 0.0 - 1.0 (ElevenLabs)
+  style?: number; // 0.0 - 1.0 (ElevenLabs)
+  useSpeakerBoost?: boolean; // ElevenLabs
+  // Speed/pitch control
+  speed?: number; // 0.5 - 2.0
+  pitch?: number; // -20 to 20 semitones
+  // Output format
+  outputFormat?: "mp3" | "wav" | "ogg" | "flac" | "ulaw";
+  sampleRate?: number; // 8000, 16000, 22050, 24000, 44100, 48000
+  // Custom voice (for voice cloning)
+  customVoiceId?: string;
+  // Emotion/style
+  emotion?: "neutral" | "happy" | "sad" | "angry" | "fearful" | "surprised";
+  // Custom model path
+  modelPath?: string;
+}
+
+/**
+ * Sound Effects Generation Configuration
+ */
+export interface SoundEffectsConfig {
+  // Provider
+  provider: "elevenlabs" | "custom";
+  // Text prompt describing the sound
+  prompt: string;
+  // Duration in seconds
+  duration?: number; // default: 5, max: 30
+  // Number of variations to generate
+  variations?: number; // 1-4
+  // Sound category for better prompting
+  category?:
+    | "foley"
+    | "ambient"
+    | "impact"
+    | "whoosh"
+    | "ui"
+    | "nature"
+    | "urban"
+    | "mechanical"
+    | "magical";
+  // Intensity
+  intensity?: number; // 0.1 - 1.0
+  // Output format
+  outputFormat?: "mp3" | "wav" | "ogg" | "flac";
+  sampleRate?: number;
+  // Custom model path
+  modelPath?: string;
+}
+
+/**
+ * Lip Sync Configuration
+ * Audio-driven facial animation (SadTalker / Wav2Lip)
+ */
+export interface LipSyncConfig {
+  // Provider
+  provider: "sadtalker" | "wav2lip" | "custom";
+  // Input video URL (face video)
+  videoUrl: string;
+  // Input audio URL (speech audio)
+  audioUrl: string;
+  // Face detection/enhancement
+  faceEnhance?: boolean;
+  // Still image mode (SadTalker)
+  stillMode?: boolean;
+  // Preprocess type (SadTalker)
+  preprocess?: "crop" | "resize" | "full" | "extcrop" | "extfull";
+  // Expression scale (SadTalker)
+  expressionScale?: number; // 0.5 - 2.0
+  // Batch size
+  batchSize?: number;
+  // Output format
+  outputFormat?: "mp4" | "webm" | "mov";
+  // Output quality
+  outputQuality?: "low" | "medium" | "high" | "lossless";
+  // Custom model path
+  modelPath?: string;
+}
+
+/**
+ * Background Music Generation Configuration
+ * AI music generation (Suno / Udio style)
+ */
+export interface BackgroundMusicConfig {
+  // Provider
+  provider: "suno" | "udio" | "custom";
+  // Text prompt describing the music
+  prompt: string;
+  // Duration in seconds
+  duration: number; // 10 - 300
+  // Genre/style
+  genre?: string; // e.g., "cinematic", "ambient", "electronic", "orchestral", "lo-fi"
+  // Mood
+  mood?:
+    | "happy"
+    | "sad"
+    | "energetic"
+    | "calm"
+    | "epic"
+    | "mysterious"
+    | "romantic"
+    | "tense";
+  // Tempo (BPM)
+  tempo?: number; // 60 - 200
+  // Key
+  key?: string; // e.g., "C major", "A minor"
+  // Instruments
+  instruments?: string[]; // e.g., ["piano", "strings", "pad", "drums"]
+  // Structure
+  structure?:
+    | "intro-verse-chorus"
+    | "verse-chorus"
+    | "ambient"
+    | "loop"
+    | "intro-build-drop";
+  // Vocals
+  vocals?: boolean;
+  // Lyrics (if vocals=true)
+  lyrics?: string;
+  // Output format
+  outputFormat?: "mp3" | "wav" | "flac";
+  sampleRate?: number;
+  // Custom model path
+  modelPath?: string;
+}
+
+/**
+ * Audio Job Result
+ */
+export interface AudioJobResult {
+  id: string;
+  status: "queued" | "processing" | "completed" | "failed";
+  progress: number;
+  outputUrl?: string;
+  error?: string;
+  processingTime?: number; // milliseconds
+  outputMetadata?: {
+    duration: number; // seconds
+    sampleRate: number;
+    channels: number;
+    format: string;
+    filesize: number;
+    // For music
+    bpm?: number;
+    key?: string;
+  };
+  createdAt: number;
+  updatedAt: number;
+  completedAt?: number;
+}
+
+/**
+ * Audio Provider Interface
+ */
+export interface AudioProvider {
+  name: string;
+  supportedModels: string[];
+  maxDuration: number; // seconds
+  maxTextLength?: number; // for TTS
+
+  /**
+   * Submit a TTS job
+   */
+  textToSpeech(input: {
+    config: TTSConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a sound effects generation job
+   */
+  generateSoundEffects(input: {
+    config: SoundEffectsConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a lip sync job
+   */
+  lipSync(input: {
+    config: LipSyncConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Submit a background music generation job
+   */
+  generateMusic(input: {
+    config: BackgroundMusicConfig;
+    webhookUrl?: string;
+  }): Promise<{ jobId: string; statusUrl: string }>;
+
+  /**
+   * Get job status
+   */
+  getStatus(jobId: string): Promise<AudioJobResult>;
+
+  /**
+   * Cancel job
+   */
+  cancel(jobId: string): Promise<void>;
+
+  /**
+   * Get supported voices/models
+   */
+  getVoices(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      language: string;
+      gender: "male" | "female" | "neutral";
+      previewUrl?: string;
+      description?: string;
+      category?: "tts" | "music" | "effects";
+    }>
+  >;
 }
 
 // ============================================
@@ -668,6 +1068,11 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.TEXT_TO_IMAGE,
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
+      // Phase 11.5: Advanced Generation Modes
+      GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER,
+      GenerationType.INPAINTING_OUTPAINTING,
+      GenerationType.DEPTH_NORMAL_CONTROL,
+      GenerationType.MULTI_SHOT_STORYBOARD,
     ],
     maxDuration: 15,
     maxResolution: "4k",
@@ -691,6 +1096,11 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.TEXT_TO_IMAGE,
       GenerationType.IMAGE_TO_IMAGE,
       GenerationType.MOTION_CONTROL,
+      // Phase 11.5: Advanced Generation Modes
+      GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER,
+      GenerationType.INPAINTING_OUTPAINTING,
+      GenerationType.DEPTH_NORMAL_CONTROL,
+      GenerationType.MULTI_SHOT_STORYBOARD,
     ],
     maxDuration: 15,
     maxResolution: "1080p",
@@ -711,6 +1121,10 @@ export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
       GenerationType.TEXT_TO_VIDEO,
       GenerationType.IMAGE_TO_VIDEO,
       GenerationType.TEXT_TO_IMAGE,
+      // Phase 11.5: Wan may support limited advanced modes
+      GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER,
+      GenerationType.INPAINTING_OUTPAINTING,
+      GenerationType.DEPTH_NORMAL_CONTROL,
     ],
     maxDuration: 15,
     maxResolution: "720p",
