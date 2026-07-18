@@ -78,6 +78,8 @@ model Generation {
   progress    Int              @default(0)
   resultUrl   String?
   error       String?
+  retryCount  Int              @default(0)
+  lastFailedAt DateTime?
   creditsUsed Int              @default(1)
   provider    String?
   providerId  String?

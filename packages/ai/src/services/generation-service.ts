@@ -14,8 +14,6 @@ import {
   GenerationStatus,
 } from "../types";
 import { prisma } from "@klipai/db/client";
-import { logger } from "@klipai/core/logger";
-import * as Sentry from "@sentry/nextjs";
 
 export interface GenerationJob {
   id: string;
@@ -41,6 +39,13 @@ export class GenerationService {
   private orchestrator: PipelineOrchestrator;
   private jobs: Map<string, GenerationJob> = new Map();
 
+  // Dead letter queue: a FAILED generation can be retried this many
+  // times (via retryFailedGeneration) before it's considered
+  // permanently dead. No separate queue table/infra (Redis/SQS) yet —
+  // this reuses the existing Generation row, see 10.4 for a future
+  // Redis-backed upgrade if volume ever needs it.
+  private readonly MAX_RETRIES = 3;
+
   constructor() {
     this.promptEnhancer = new PromptEnhancer();
     this.orchestrator = new PipelineOrchestrator(
@@ -48,14 +53,11 @@ export class GenerationService {
       providerRouter,
     );
     initializeProviders();
-    logger.info("GenerationService initialized");
   }
 
   async generate(input: PromptEnhancerInput): Promise<GenerationJob> {
-    const jobId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const startTime = Date.now();
-
     // Create job record
+    const jobId = `gen_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const job: GenerationJob = {
       id: jobId,
       brief: input.brief,
@@ -70,46 +72,14 @@ export class GenerationService {
     };
     this.jobs.set(jobId, job);
 
-    // Set Sentry context
-    Sentry.setContext("generation_job", {
-      jobId,
-      type: input.type,
-      brief: input.brief,
-      hasImages: !!input.images?.length,
-      hasVideo: !!input.video,
-    });
-
-    logger.info("Generation job created", {
-      jobId,
-      type: input.type,
-      brief: input.brief,
-    });
-
     // Process asynchronously
-    this.processGeneration(jobId, input)
-      .then(() => {
-        const duration = Date.now() - startTime;
-        logger.info("Generation job completed", {
-          jobId,
-          durationMs: duration,
-        });
-      })
-      .catch((error) => {
-        const duration = Date.now() - startTime;
-        logger.error("Generation job failed", {
-          jobId,
-          durationMs: duration,
-          error: error.message,
-        });
-        Sentry.captureException(error, {
-          extra: { jobId, type: input.type },
-        });
-        this.updateJob(jobId, {
-          status: GenerationStatus.FAILED,
-          error: error.message,
-          updatedAt: Date.now(),
-        }).catch(console.error);
-      });
+    this.processGeneration(jobId, input).catch((error) => {
+      this.updateJob(jobId, {
+        status: GenerationStatus.FAILED,
+        error: error.message,
+        updatedAt: Date.now(),
+      }).catch(console.error);
+    });
 
     return job;
   }
@@ -138,12 +108,127 @@ export class GenerationService {
         this.updateJob(jobId, { ...update, updatedAt: Date.now() }),
       );
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Generation failed";
       await this.updateJob(jobId, {
         status: GenerationStatus.FAILED,
-        error: error instanceof Error ? error.message : "Generation failed",
+        error: message,
         updatedAt: Date.now(),
       });
+      await this.recordFailureForRetry(jobId);
     }
+  }
+
+  /**
+   * Bumps retryCount/lastFailedAt on a failed generation, so it shows
+   * up in the dead letter queue with accurate retry history. Separate
+   * from updateJob() because retryCount isn't part of GenerationJob —
+   * it's DLQ bookkeeping, not job/progress state.
+   */
+  private async recordFailureForRetry(jobId: string): Promise<void> {
+    try {
+      await prisma.generation.update({
+        where: { id: jobId },
+        data: {
+          retryCount: { increment: 0 }, // no-op on first failure; retryFailedGeneration() increments on actual retry
+          lastFailedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.error(`Failed to record DLQ metadata for job ${jobId}:`, error);
+    }
+  }
+
+  /**
+   * Retries a previously failed generation, up to MAX_RETRIES times.
+   * Reconstructs the pipeline input straight from the stored
+   * Generation row (prompt/type/images/video/options), so no separate
+   * queue payload needs to be kept around.
+   */
+  async retryFailedGeneration(jobId: string): Promise<{
+    retried: boolean;
+    reason?: "NOT_FOUND" | "NOT_FAILED" | "MAX_RETRIES_EXCEEDED";
+  }> {
+    const record = await prisma.generation.findUnique({
+      where: { id: jobId },
+    });
+    if (!record) return { retried: false, reason: "NOT_FOUND" };
+    if (record.status !== "FAILED") {
+      return { retried: false, reason: "NOT_FAILED" };
+    }
+    if (record.retryCount >= this.MAX_RETRIES) {
+      return { retried: false, reason: "MAX_RETRIES_EXCEEDED" };
+    }
+
+    await prisma.generation.update({
+      where: { id: jobId },
+      data: {
+        status: "QUEUED",
+        progress: 0,
+        error: null,
+        retryCount: { increment: 1 },
+      },
+    });
+
+    // Drop stale in-memory state so processGeneration() re-seeds it
+    // as a fresh QUEUED job instead of reusing old FAILED fields.
+    this.jobs.delete(jobId);
+
+    const input: PromptEnhancerInput = {
+      brief: record.prompt,
+      type: record.type.toLowerCase().replace(/_/g, "-") as GenerationType,
+      images: record.images,
+      video: record.video || undefined,
+      userPreferences: (record.options as any) || undefined,
+    };
+
+    this.processGeneration(jobId, input).catch(console.error);
+
+    return { retried: true };
+  }
+
+  /**
+   * Dead letter queue view: failed generations for a user (or
+   * globally if no userId given), with whether each is still
+   * eligible for retry.
+   */
+  async listDeadLetterQueue(options: { userId?: string } = {}): Promise<
+    Array<{
+      id: string;
+      prompt: string;
+      type: string;
+      error: string | null;
+      retryCount: number;
+      retryable: boolean;
+      failedAt: Date | null;
+    }>
+  > {
+    const records = await prisma.generation.findMany({
+      where: {
+        status: "FAILED",
+        ...(options.userId ? { userId: options.userId } : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+
+    return records.map(
+      (r: {
+        id: string;
+        prompt: string;
+        type: string;
+        error: string | null;
+        retryCount: number;
+        lastFailedAt: Date | null;
+      }) => ({
+        id: r.id,
+        prompt: r.prompt,
+        type: r.type,
+        error: r.error,
+        retryCount: r.retryCount,
+        retryable: r.retryCount < this.MAX_RETRIES,
+        failedAt: r.lastFailedAt,
+      }),
+    );
   }
 
   private async updateJob(

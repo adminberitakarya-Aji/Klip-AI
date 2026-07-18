@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import {
+  perUserGenerateLimiter,
+  perIpGenerateLimiter,
+  getClientIp,
+  rateLimitResponseHeaders,
+} from "@/lib/rate-limit";
 import { generationService } from "@klipai/ai/services/generation-service";
 import { generationRequestSchema } from "@klipai/core/schemas";
 import { prisma } from "@klipai/db/client";
@@ -36,6 +42,22 @@ export async function POST(
   }
 
   try {
+    const ip = getClientIp(request);
+    const ipLimit = perIpGenerateLimiter.check(ip);
+    if (!ipLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "RATE_LIMITED",
+            message:
+              "Too many generation requests from this network. Try again shortly.",
+          },
+        },
+        { status: 429, headers: rateLimitResponseHeaders(ipLimit) },
+      );
+    }
+
     const sessionUser = await getSessionUser(request);
     if (!sessionUser?.id) {
       return NextResponse.json(
@@ -44,6 +66,20 @@ export async function POST(
           error: { code: "UNAUTHORIZED", message: "Authentication required" },
         },
         { status: 401 },
+      );
+    }
+
+    const userLimit = perUserGenerateLimiter.check(sessionUser.id);
+    if (!userLimit.allowed) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: "RATE_LIMITED",
+            message: "Too many generation requests. Please slow down.",
+          },
+        },
+        { status: 429, headers: rateLimitResponseHeaders(userLimit) },
       );
     }
 
