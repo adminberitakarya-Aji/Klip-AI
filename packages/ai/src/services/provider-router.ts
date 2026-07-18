@@ -319,7 +319,10 @@ export class ProviderRouter {
       status: this.mapStatus(response.status),
       progress: response.progress || 0,
       resultUrl:
-        response.result_url || response.video_url || response.image_url,
+        response.resultUrl ||
+        response.result_url ||
+        response.video_url ||
+        response.image_url,
       error: response.error,
       metadata: { provider: providerName, ...response.metadata },
     };

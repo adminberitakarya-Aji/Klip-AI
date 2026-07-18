@@ -345,6 +345,16 @@ Generate the complete structured prompt.`;
     input: PromptEnhancerInput,
     analysis: IntentAnalysis,
   ): EnhancedGenerationRequest {
+    const template = this.buildTemplate(input, analysis);
+    // Same passthrough as mergeWithDefaults() — the Claude-generated
+    // path isn't the only one that needs images/video carried through.
+    return { ...template, images: input.images, video: input.video };
+  }
+
+  private buildTemplate(
+    input: PromptEnhancerInput,
+    analysis: IntentAnalysis,
+  ): EnhancedGenerationRequest {
     const provider = this.selectProvider(input.type, analysis);
     const duration = analysis.suggestedDuration;
     const aspectRatio = analysis.suggestedAspectRatio as any;

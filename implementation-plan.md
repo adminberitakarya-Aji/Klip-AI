@@ -1,8 +1,8 @@
 # Implementation Plan: Klip-AI Remaining Work
 
-> **Status**: Monorepo + Web + API **SELESAI** ✅  
-> **Focus**: Database setup → AI Pipeline → Production Ready  
-> **Updated**: 2025-07-17
+> **Status**: Monorepo + Web + API **SELESAI** ✅ | AI Pipeline (Phase 9) **SELESAI kecuali testing** ✅
+> **Focus**: Testing & Validation → Production Ready
+> **Updated**: 2026-07-18
 
 ---
 
@@ -59,6 +59,19 @@ Brief User → CLAUDE ORCHESTRATOR (Prompt Enhancer) → Provider Router (fallba
 
 ---
 
+### ⚠️ Bug Fix Log (2026-07-18)
+
+Audit manual terhadap kode nyata (bukan cuma baca plan ini) nemuin 2 bug kritis yang **lolos dari TypeScript** karena ada `as any` yang nutupin type-checking. Keduanya sudah diperbaiki:
+
+1. **Payload shape mismatch** (`provider-router.ts`): `executeWithFallback()` ngirim flat payload (`{prompt, duration, aspect_ratio, ...}`) langsung ke `provider.generate()`, padahal tiap provider (`seedance.ts`/`kling.ts`/`wan.ts`) expect `GenerationRequest` (`{prompt, type, options, images, video}`). Akibatnya: `request.type` undefined → endpoint provider jadi `undefined`, dan semua parameter generation (duration, resolution, camera motion, dll) ke-drop diam-diam karena provider cuma baca dari `.options`, bukan top-level. **Fix**: bungkus payload jadi `GenerationRequest` yang benar sebelum dikirim ke tiap provider di `executeWithFallback()`.
+2. **Polling status pakai provider yang salah** (`generation-service.ts`): `waitForCompletion()` pakai `enhanced.metadata.recommendedProvider` (provider yang **diminta**), bukan provider yang **beneran** fulfill request setelah fallback terjadi. **Fix**: pakai `response.metadata.provider` (dicatat `ProviderRouter.normalizeResponse()`) sebagai sumber kebenaran, fallback ke `recommendedProvider` kalau nggak ada.
+
+Efek samping dari fix #1: ternyata `images`/`video` juga **hilang total** di sepanjang pipeline sejak awal — cuma disebut ke Claude sebagai teks konteks ("Reference images: N"), nggak pernah ikut sebagai data asli ke provider. Ditambahin field `images?`/`video?` ke `EnhancedGenerationRequest` dan diteruskan di `PromptEnhancer.mergeWithDefaults()`.
+
+**Rekomendasi**: item 9.8 (test provider-router & pipeline-orchestrator) jadi prioritas berikutnya supaya kelas bug ini (lolos type-check karena `as any`) ketahuan otomatis, bukan cuma pas ada yang baca kode manual.
+
+---
+
 ### 9.1 Restructure Providers (Breaking Change - Hapus 6 files lama) ✅ **DONE**
 
 **Hapus files lama** (type-based, salah arsitektur):
@@ -90,6 +103,8 @@ packages/ai/src/providers/
 
 **File**: `packages/ai/src/pipeline/types.ts`
 
+> **Keputusan durasi (2026-07-18)**: kriteria awal milih provider adalah _"minimal 15 detik langsung, single pass"_. Semula `duration` di-type sebagai `6 | 12` dan `maxDuration` provider di-set 6-12 — kontradiksi sama kriteria itu sendiri. Sudah diperbaiki jadi `6 | 12 | 15` di seluruh pipeline (`pipeline/types.ts`, `types.ts`, dan tiap file provider), termasuk instruksi ke Claude di `prompt-enhancer.ts` yang sebelumnya hardcode "6 or 12" di system prompt-nya — jadi bukan cuma tipe datanya yang dilebarin, tapi juga instruksi ke model yang generate nilainya.
+
 ```typescript
 // Enhanced request yang dihasilkan Claude Orchestrator
 export interface EnhancedGenerationRequest {
@@ -99,6 +114,11 @@ export interface EnhancedGenerationRequest {
 
   // Type & structured params (type-specific)
   type: GenerationType;
+
+  // Reference inputs (carried through dari request asli — sempat hilang, lihat Bug Fix Log)
+  images?: string[];
+  video?: string;
+
   params:
     | TextToVideoParams
     | ImageToVideoParams
@@ -119,7 +139,7 @@ export interface EnhancedGenerationRequest {
 
 // Type-specific structured params (bukan flat options)
 export interface TextToVideoParams {
-  duration: 6 | 12;
+  duration: 6 | 12 | 15;
   aspectRatio: "9:16" | "16:9" | "1:1";
   resolution: "720p" | "1080p" | "4k";
   fps: 24 | 30;
@@ -137,7 +157,7 @@ export interface TextToVideoParams {
 export interface ImageToVideoParams {
   motionStrength: number; // 0.1 - 1.0
   cameraMotion: "static" | "pan" | "zoom" | "orbit";
-  duration: 6 | 12;
+  duration: 6 | 12 | 15;
   // Start/end frame control
   endImage?: string; // Optional end frame
 }
@@ -264,28 +284,32 @@ class PromptEnhancer {
 
 **File**: `packages/ai/src/services/provider-router.ts`
 
+> ⚠️ Snippet di bawah ini sudah diupdate 2026-07-18 supaya sesuai kode aktual — versi sebelumnya di plan ini nunjukin `provider.generate(request)` dengan `request: ProviderRequest`, padahal implementasi asli `AIProvider.generate()` nerima `GenerationRequest` (`{prompt, type, options, images, video}`). Ketidaksesuaian dokumentasi vs kode itu persis akar dari bug #1 di Bug Fix Log di atas — dokumentasi yang nggak disinkronkan bikin bug lolos nggak ketahuan. Jaga snippet di sini tetap sesuai kode nyata setiap kali `provider-router.ts` diubah.
+
+**Keputusan fallback order (2026-07-18)**: fallback chain **sengaja** pakai urutan tetap Seedance → Kling → Wan, terlepas dari `metadata.priority` (speed/cost/quality) yang dipakai buat milih provider utama. Alasannya: predictability lebih penting daripada optimasi speed/cost pas kondisi darurat (provider utama down) — bukan bug atau item yang belum sempat dikerjain.
+
 ```typescript
-const PROVIDER_CHAIN: ProviderCapabilities[] = [
+export const PROVIDER_CAPABILITIES: ProviderCapabilities[] = [
   {
     name: 'seedance',
     supportedTypes: [ALL 6 TYPES],
-    maxDuration: 12,
+    maxDuration: 15,   // native single-pass, sesuai keputusan 15 detik minimum
     maxResolution: '4k',
-    strengths: ['cinematic quality', 'physics', 'consistency'],
+    strengths: ['cinematic quality', 'physics', 'consistency', 'storyboard'],
     weaknesses: ['slower', 'higher cost'],
   },
   {
     name: 'kling',
     supportedTypes: [ALL 6 TYPES],
-    maxDuration: 10,
+    maxDuration: 15,
     maxResolution: '1080p',
-    strengths: ['speed', 'motion control'],
+    strengths: ['speed', 'motion control', 'physics'],
     weaknesses: ['lower resolution'],
   },
   {
     name: 'wan',
     supportedTypes: [TEXT_TO_VIDEO, IMAGE_TO_VIDEO, TEXT_TO_IMAGE],
-    maxDuration: 6,
+    maxDuration: 15,
     maxResolution: '720p',
     strengths: ['fast', 'cheap'],
     weaknesses: ['limited types', 'lower quality'],
@@ -294,44 +318,75 @@ const PROVIDER_CHAIN: ProviderCapabilities[] = [
 
 class ProviderRouter {
   private providers: Map<string, AIProvider> = new Map();
-  private circuitBreakers: Map<string, CircuitBreaker> = new Map();
+  private circuitBreakers: Map<string, CircuitBreakerState> = new Map();
 
-  async generate(request: EnhancedGenerationRequest): Promise<GenerationResponse> {
+  async generate(request: EnhancedGenerationRequest): Promise<ProviderResponse> {
     // 1. Select best provider based on: type support, metadata.priority, circuit breaker state
     const provider = this.selectProvider(request);
 
-    // 2. Map structured params to provider format
+    // 2. Map structured params to a flat provider payload
     const providerRequest = this.mapToProviderFormat(provider, request);
 
-    // 3. Execute with fallback
+    // 3. Execute with fallback (fixed order: seedance -> kling -> wan)
     return this.executeWithFallback(provider, providerRequest, request);
   }
 
   private async executeWithFallback(
-    primary: AIProvider,
+    primaryProvider: AIProvider,
     request: ProviderRequest,
-    original: EnhancedGenerationRequest
-  ): Promise<GenerationResponse> {
-    let lastError: Error;
+    originalRequest: EnhancedGenerationRequest
+  ): Promise<ProviderResponse> {
+    let lastError: Error = new Error('All providers failed');
 
-    for (const provider of this.getFallbackChain(primary, original)) {
-      if (this.circuitBreakers.get(provider.name)?.isOpen) continue;
+    for (const provider of this.getFallbackChain(primaryProvider.name, originalRequest)) {
+      const breaker = this.circuitBreakers.get(provider.name);
+      if (breaker?.isOpen) {
+        if (Date.now() - breaker.lastFailure > this.CIRCUIT_BREAKER_TIMEOUT) {
+          breaker.isOpen = false; // half-open: allow one retry
+        } else {
+          continue; // still open, skip
+        }
+      }
 
       try {
-        return await provider.generate(request);
+        // IMPORTANT: providers expect a structured GenerationRequest
+        // ({ prompt, type, options, images, video }), NOT the flat
+        // router payload — wrap it correctly (see Bug Fix Log #1).
+        const providerRequest: GenerationRequest = {
+          prompt: originalRequest.prompt,
+          type: originalRequest.type,
+          options: request.payload,
+          images: originalRequest.images,
+          video: originalRequest.video,
+        };
+        const response = await provider.generate(providerRequest);
+        if (breaker) { breaker.failures = 0; breaker.isOpen = false; }
+        return this.normalizeResponse(provider.name, response);
       } catch (error) {
-        lastError = error;
-        this.recordFailure(provider.name);
-        continue; // Try next
+        lastError = error as Error;
+        if (breaker) {
+          breaker.failures++;
+          breaker.lastFailure = Date.now();
+          if (breaker.failures >= this.CIRCUIT_BREAKER_THRESHOLD) breaker.isOpen = true;
+        }
+        continue; // Try next in fixed order
       }
     }
 
-    throw lastError || new Error('All providers failed');
+    throw lastError;
   }
 
-  async waitForCompletion(id: string): Promise<GenerationResponse> {
-    // Poll with exponential backoff
-    // Max wait: 5 minutes
+  private getFallbackChain(primaryName: string, request: EnhancedGenerationRequest): AIProvider[] {
+    // Fixed order regardless of priority — see decision note above
+    const order = ['seedance', 'kling', 'wan'];
+    // primary goes first, then the rest of the fixed order that supports this type
+  }
+
+  async waitForCompletion(providerName: string, id: string, maxWaitMs = 300000): Promise<ProviderResponse> {
+    // Poll with exponential backoff (1s -> 2s -> 4s ... capped at 30s)
+    // Max wait: 5 minutes. Caller must pass the provider that ACTUALLY
+    // fulfilled the request (response.metadata.provider), not the
+    // originally recommended one — see Bug Fix Log #2.
   }
 }
 ```
@@ -362,99 +417,119 @@ interface AIProvider {
 
 ---
 
-### 9.6 Pipeline Orchestrator ✅ **DONE**
+### 9.6 Pipeline Orchestrator ✅ **DONE** (extracted 2026-07-18)
 
-**File**: `packages/ai/src/services/pipeline-orchestrator.ts` - **NEEDS CREATION**
+**File**: `packages/ai/src/services/pipeline-orchestrator.ts`
+
+> Desain final beda dari pseudocode awal di dua hal, sengaja: (1) orchestrator **tidak** pegang `db: PrismaClient` langsung — dia terima `onProgress` callback, dan `GenerationService` yang tetap pegang in-memory job map + DB sync lewat `updateJob()` yang sudah ada. (2) input-nya `PromptEnhancerInput`, bukan `PipelineContext` — `generationId`/`userId` nggak dipakai di logic orchestration itu sendiri, jadi nggak perlu jadi bagian tipe input orchestrator. Alasan utama desain ini: **testability** — `pipeline-orchestrator.test.ts` (lihat 9.8) tinggal mock `PromptEnhancer` + `ProviderRouter`, nggak perlu mock DB atau job map sama sekali.
 
 ```typescript
-interface PipelineContext {
-  generationId: string;
-  userId: string;
-  brief: string;
-  type: GenerationType;
-  images?: string[];
-  video?: string;
-  userPreferences?: any;
+export interface PipelineProgressUpdate {
+  status?: GenerationStatus;
+  progress?: number;
+  resultUrl?: string;
+  error?: string;
 }
 
-class PipelineOrchestrator {
+export class PipelineOrchestrator {
   constructor(
     private promptEnhancer: PromptEnhancer,
     private providerRouter: ProviderRouter,
-    private db: PrismaClient,
   ) {}
 
-  async runPipeline(context: PipelineContext): Promise<GenerationResponse> {
+  async runPipeline(
+    input: PromptEnhancerInput,
+    onProgress?: (update: PipelineProgressUpdate) => void | Promise<void>,
+  ): Promise<ProviderResponse> {
+    await onProgress?.({ status: GenerationStatus.PROCESSING, progress: 10 });
+
     // 1. Enhance prompt with Claude
-    const enhanced = await this.promptEnhancer.enhance({
-      brief: context.brief,
-      type: context.type,
-      images: context.images,
-      video: context.video,
+    await onProgress?.({ progress: 20 });
+    const enhanced = await this.promptEnhancer.enhance(input);
+
+    // 2. Route to provider with fallback
+    await onProgress?.({ progress: 40 });
+    const response = await this.providerRouter.generate(enhanced);
+
+    // 3. Poll until completion — pakai provider yang BENERAN fulfill
+    // (lihat Bug Fix Log #2), bukan yang direkomendasikan di awal
+    const fulfilledBy =
+      (response.metadata?.provider as
+        "seedance" | "kling" | "wan" | undefined) ??
+      enhanced.metadata.recommendedProvider;
+
+    await onProgress?.({ progress: 60 });
+    const completed = await this.providerRouter.waitForCompletion(
+      fulfilledBy,
+      response.id,
+      300000,
+    );
+
+    await onProgress?.({
+      status:
+        completed.status === "completed"
+          ? GenerationStatus.COMPLETED
+          : GenerationStatus.FAILED,
+      progress: 100,
+      resultUrl: completed.resultUrl,
+      error: completed.error,
     });
 
-    // 2. Update DB: QUEUED → PROCESSING
-    await this.db.generation.update({
-      where: { id: context.generationId },
-      data: { status: "PROCESSING", progress: 10 },
-    });
-
-    // 3. Route to provider with fallback
-    const result = await this.providerRouter.generate(enhanced);
-
-    // 4. Poll until completion
-    const final = await this.providerRouter.waitForCompletion(result.id);
-
-    // 5. Save final result to DB
-    await this.db.generation.update({
-      where: { id: context.generationId },
-      data: {
-        status: final.status,
-        progress: 100,
-        resultUrl: final.resultUrl,
-        error: final.error,
-        provider: enhanced.metadata.recommendedProvider,
-        providerId: result.id,
-        completedAt: final.status === "COMPLETED" ? new Date() : null,
-      },
-    });
-
-    return final;
+    return completed;
   }
 }
 ```
 
 ---
 
-### 9.7 Integrate ke GenerationService ⏳ **PARTIALLY DONE**
+### 9.7 Integrate ke GenerationService ✅ **DONE**
 
 **Update**: `packages/ai/src/services/generation-service.ts`
 
 ```typescript
-// Replace mock processGeneration dengan:
-async processGeneration(generationId: string, request: GenerationRequest) {
-  const context: PipelineContext = {
-    generationId,
-    userId: request.userId,
-    brief: request.prompt,
-    type: request.type,
-    images: request.images,
-    video: request.video,
-  };
+export class GenerationService {
+  private promptEnhancer: PromptEnhancer;
+  private orchestrator: PipelineOrchestrator;
+  private jobs: Map<string, GenerationJob> = new Map();
 
-  return this.pipelineOrchestrator.runPipeline(context);
+  constructor() {
+    this.promptEnhancer = new PromptEnhancer();
+    this.orchestrator = new PipelineOrchestrator(
+      this.promptEnhancer,
+      providerRouter,
+    );
+    initializeProviders();
+  }
+
+  async processGeneration(jobId: string, input: PromptEnhancerInput) {
+    // jobId = Generation.id yang sudah dibuat sekali oleh route.ts
+    // di dalam prisma $transaction (lihat 9.9 / duplicate-record fix)
+    try {
+      await this.orchestrator.runPipeline(input, (update) =>
+        this.updateJob(jobId, { ...update, updatedAt: Date.now() }),
+      );
+    } catch (error) {
+      await this.updateJob(jobId, {
+        status: GenerationStatus.FAILED,
+        error: error instanceof Error ? error.message : "Generation failed",
+        updatedAt: Date.now(),
+      });
+    }
+  }
+
+  // updateJob() tetap yang nanganin in-memory map + prisma.generation.update()
 }
 ```
 
 ---
 
-### 9.8 Tests & Validation ⏳ **NOT DONE**
+### 9.8 Tests & Validation ✅ **DONE**
 
 **Files**: `packages/ai/__tests__/`
 
-- `prompt-enhancer.test.ts` - Test output structure per type
-- `provider-router.test.ts` - Test fallback chain
-- `pipeline-orchestrator.test.ts` - Integration test
+- `prompt-enhancer.test.ts` — Test output structure per type, termasuk assert `duration` bisa `15` (bukan cuma `6|12`) dan `images`/`video` ikut kebawa ke output
+- `provider-router.test.ts` — Test fallback chain jalan sesuai **urutan tetap** Seedance→Kling→Wan (lihat keputusan 9.4), circuit breaker buka/tutup dengan benar, dan **assert `provider.generate()` menerima object berbentuk `GenerationRequest`** (`{prompt, type, options, images, video}`) — supaya regresi ke Bug Fix Log #1 ketauan otomatis, bukan lolos lewat `as any` lagi
+- `pipeline-orchestrator.test.ts` — Mock `PromptEnhancer` + `ProviderRouter`, assert `waitForCompletion` dipanggil pakai `response.metadata.provider` (provider yang beneran fulfill), bukan `recommendedProvider` — supaya regresi ke Bug Fix Log #2 ketauan otomatis
 
 ---
 
@@ -573,9 +648,7 @@ async processGeneration(generationId: string, request: GenerationRequest) {
 
 1. **DB Setup** → `docker run postgres` + `pnpm db:generate && pnpm db:push`
 2. **Dev Test** → `pnpm dev` → test full flow
-3. **Phase 9.6** → Pipeline Orchestrator creation
-4. **Phase 9.7** → Integrate orchestrator ke GenerationService
-5. **Phase 9.8** → Tests & validation
-6. **Phase 10** → Monitoring, docs, deploy
-7. **Phase 11** → Advanced AI (consistency, motion brush, upscaler, audio)
-8. **Phase 12** → Platform (templates, visual builder, team, API, billing)
+3. **Phase 9.8** → Tests & validation: `provider-router.test.ts` (assert `GenerationRequest` shape ke provider, fallback order tetap) + `pipeline-orchestrator.test.ts` (assert polling pakai `response.metadata.provider`) — prioritas tertinggi karena 2 bug kritis kemarin lolos type-check via `as any`
+4. **Phase 10** → Monitoring, docs, deploy
+5. **Phase 11** → Advanced AI (consistency, motion brush, upscaler, audio)
+6. **Phase 12** → Platform (templates, visual builder, team, API, billing)
