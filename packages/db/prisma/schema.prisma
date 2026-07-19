@@ -24,6 +24,9 @@ model User {
   sessions      Session[]
   generations   Generation[]
   upscalerJobs  UpscalerJob[]
+  templateGenerations TemplateGenerationJob[]
+  brandKit      BrandKit?
+  reviews       TemplateReview[]
 
   @@map("users")
 }
@@ -178,6 +181,226 @@ enum GenerationType {
   TEXT_TO_IMAGE
   IMAGE_TO_IMAGE
   MOTION_CONTROL
+  // Phase 11.5: Advanced Generation Modes
+  VIDEO_TO_VIDEO_STYLE_TRANSFER
+  INPAINTING_OUTPAINTING
+  DEPTH_NORMAL_CONTROL
+  MULTI_SHOT_STORYBOARD
+}
+
+// ============================================
+// TEMPLATE SYSTEM (Phase 12.1)
+// ============================================
+
+model StoryboardTemplate {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String   @db.Text
+  category        String
+  tags            String[]
+  industry        String?
+  format          String
+  style           String
+  
+  // Duration & aspect
+  totalDuration   Int
+  aspectRatio     String
+  shotCount       Int
+  
+  // Reference style for consistency
+  referenceStyleUrl   String?
+  referenceStyleType  String?
+  
+  // Brand kit placeholders
+  brandKitSlots     Json?
+  
+  // Versioning & publishing
+  version         Int      @default(1)
+  isPublished     Boolean  @default(false)
+  isOfficial      Boolean  @default(false)
+  authorId        String?
+  
+  // Preview assets (generated at publish time)
+  previewThumbnailUrl String?
+  previewVideoUrl     String?
+  shotPreviews        Json?
+  
+  // Credits cost (flat fee per template generation)
+  creditsCost     Int      @default(5)
+  
+  // Stats
+  usageCount      Int      @default(0)
+  rating          Float?
+  reviewCount     Int      @default(0)
+  
+  // Preset pack relation
+  presetPackId    String?
+  presetPack      PresetPack? @relation(fields: [presetPackId], references: [id], onDelete: SetNull)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+  
+  shots           TemplateShot[]
+  generations     TemplateGenerationJob[]
+  reviews         TemplateReview[]
+  
+  @@index([category])
+  @@index([format])
+  @@index([isPublished, isOfficial])
+  @@index([authorId])
+  @@index([presetPackId])
+  @@map("storyboard_templates")
+}
+
+model TemplateShot {
+  id              String   @id @default(cuid())
+  templateId      String
+  index           Int
+  timeRange       String
+  duration        Int
+  description     String
+  prompt          String   @db.Text
+  negativePrompt  String?  @db.Text
+  camera          String
+  lighting        String
+  
+  // Generation params (full config)
+  generationType  String
+  resolution      String
+  fps             Int
+  cameraMotion    String
+  motionStrength  Float?
+  seed            Int?
+  
+  // Reference per shot (optional override)
+  referenceImageUrl String?
+  referenceRole     String?
+  referenceWeight   Float?
+  
+  // Brand kit injection points
+  brandKitOverlays  Json?
+  
+  // Preview (generated at template publish)
+  previewUrl        String?
+  previewGeneratedAt DateTime?
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  template          StoryboardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  @@unique([templateId, index])
+  @@map("template_shots")
+}
+
+// Brand Kit (untuk auto-apply ke template)
+model BrandKit {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  name            String
+  logoUrl         String?
+  logoPosition    String   @default("bottom-right")
+  logoOpacity     Float    @default(0.9)
+  colorPalette    String[]
+  primaryFont     String?
+  secondaryFont   String?
+  jingleUrl       String?
+  brandGuidelines String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateGenerations TemplateGenerationJob[]
+  
+  @@map("brand_kits")
+}
+
+// Template Generation Job (track batch generation from template)
+model TemplateGenerationJob {
+  id              String   @id @default(cuid())
+  userId          String
+  templateId      String
+  brandKitId      String?
+  status          TemplateJobStatus @default(QUEUED)
+  progress        Int      @default(0)
+  currentShot     Int      @default(0)
+  totalShots      Int
+  
+  // Input customizations dari user
+  customizations  Json?
+  
+  // Results
+  shotResults     Json?
+  stitchedVideoUrl String?
+  error           String?
+  creditsUsed     Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template        StoryboardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  brandKit        BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+  
+  @@index([userId])
+  @@index([templateId])
+  @@index([status])
+  @@map("template_generation_jobs")
+}
+
+enum TemplateJobStatus {
+  QUEUED
+  PREPARING
+  GENERATING_SHOTS
+  STITCHING
+  COMPLETED
+  FAILED
+  PARTIAL_SUCCESS
+}
+
+// ============================================
+// PRESET PACKS & TEMPLATE REVIEWS (Phase 12.1)
+// ============================================
+
+model PresetPack {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String   @db.Text
+  category    String   // "style", "industry", "format"
+  thumbnailUrl String?
+  isOfficial  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  templates StoryboardTemplate[]
+
+  @@index([category])
+  @@index([isOfficial])
+  @@map("preset_packs")
+}
+
+model TemplateReview {
+  id        String   @id @default(cuid())
+  userId    String
+  templateId String
+  rating    Int      // 1-5
+  title     String?
+  content   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template  StoryboardTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+  @@index([templateId])
+  @@index([userId])
+  @@map("template_reviews")
 }
 
 enum GenerationStatus {

@@ -13,6 +13,11 @@ export default [
       '@next/next': nextPlugin,
       'react-hooks': reactHooksPlugin,
     },
+    settings: {
+      next: {
+        rootDir: ['apps/web', 'apps/api'],
+      },
+    },
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs['core-web-vitals'].rules,
