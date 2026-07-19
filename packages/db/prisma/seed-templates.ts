@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
+declare const process: { exit(code?: number): void };
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -1409,19 +1411,19 @@ async function main() {
             duration: shot.duration,
             description: shot.description,
             prompt: shot.prompt,
-            negativePrompt: shot.negativePrompt,
+            negativePrompt: shot.negativePrompt ?? null,
             camera: shot.camera,
             lighting: shot.lighting,
             generationType: shot.generationType,
             resolution: shot.resolution,
             fps: shot.fps,
             cameraMotion: shot.cameraMotion,
-            motionStrength: shot.motionStrength,
-            seed: shot.seed,
-            referenceImageUrl: shot.referenceImageUrl,
-            referenceRole: shot.referenceRole,
-            referenceWeight: shot.referenceWeight,
-            brandKitOverlays: shot.brandKitOverlays,
+            motionStrength: shot.motionStrength ?? null,
+            seed: shot.seed ?? null,
+            referenceImageUrl: shot.referenceImageUrl ?? null,
+            referenceRole: shot.referenceRole ?? null,
+            referenceWeight: shot.referenceWeight ?? null,
+            brandKitOverlays: shot.brandKitOverlays ?? null,
             previewUrl: null,
             previewGeneratedAt: null,
           })),
