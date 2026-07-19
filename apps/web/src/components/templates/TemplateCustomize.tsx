@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { formatDuration, cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface Shot {
   id: string;
@@ -183,15 +184,16 @@ export function TemplateCustomize({
       if (data.success) {
         setJobId(data.data.jobId);
         setActiveStep("review");
+        toast.success("Generate dimulai! Kredit sudah dipotong.");
         router.push(
           `/templates/${template.slug}/generate?jobId=${data.data.jobId}`,
         );
       } else {
-        alert(data.error?.message || "Gagal memulai generate");
+        toast.error(data.error?.message || "Gagal memulai generate");
       }
     } catch (error) {
       console.error("Generate error:", error);
-      alert("Terjadi kesalahan");
+      toast.error("Terjadi kesalahan. Silakan coba lagi.");
     } finally {
       setGenerating(false);
     }
