@@ -7,6 +7,7 @@ import {
 } from "@klipai/core/schemas/template";
 import { templateOrchestrator } from "@klipai/ai";
 import { z } from "zod";
+import { captureError } from "@/lib/error-capture";
 
 /**
  * Fire-and-forget execution of template generation.
@@ -31,11 +32,10 @@ async function executeTemplateGeneration(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Template generation failed";
-    console.error("Template generation background job failed:", {
+    captureError("Template generation background job failed", error, {
       jobId,
       templateId,
       userId,
-      error: message,
     });
 
     // Mark job as FAILED so user doesn't wait forever
@@ -49,7 +49,9 @@ async function executeTemplateGeneration(
         },
       });
     } catch (updateError) {
-      console.error("Failed to update job status to FAILED:", updateError);
+      captureError("Failed to update job status to FAILED", updateError, {
+        jobId,
+      });
     }
 
     // Refund credits since generation never completed
@@ -59,9 +61,10 @@ async function executeTemplateGeneration(
         data: { credits: { increment: creditsCost } },
       });
     } catch (refundError) {
-      console.error(
-        "Failed to refund credits after failed generation:",
+      captureError(
+        "Failed to refund credits after failed generation",
         refundError,
+        { jobId, userId },
       );
     }
   }
@@ -200,7 +203,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("POST /api/templates/generate error:", error);
+    captureError("POST /api/templates/generate", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

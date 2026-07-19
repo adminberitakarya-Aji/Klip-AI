@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
 import { requireEnv } from "@klipai/config";
+import { captureError } from "@/lib/error-capture";
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ voices: finalVoices });
   } catch (error) {
-    console.error("Voices API error:", error);
+    captureError("GET /api/audio/voices", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",

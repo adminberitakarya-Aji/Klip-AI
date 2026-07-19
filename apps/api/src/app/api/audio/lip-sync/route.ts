@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
 import { LipSyncConfig } from "@klipai/ai/pipeline/types";
 import { requireEnv } from "@klipai/config";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       message: "Lip sync job submitted successfully",
     });
   } catch (error) {
-    console.error("Lip Sync API error:", error);
+    captureError("POST /api/audio/lip-sync", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",
@@ -92,7 +93,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error("Lip Sync GET error:", error);
+    captureError("GET /api/audio/lip-sync", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",

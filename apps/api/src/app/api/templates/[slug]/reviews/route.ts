@@ -8,6 +8,7 @@ import {
   type ReviewQuery,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
+import { captureError } from "@/lib/error-capture";
 
 // GET /api/templates/[slug]/reviews - Get reviews for a template
 export async function GET(
@@ -121,7 +122,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("GET /api/templates/[slug]/reviews error:", error);
+    captureError("GET /api/templates/[slug]/reviews", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -234,7 +235,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, data: review }, { status: 201 });
   } catch (error) {
-    console.error("POST /api/templates/[slug]/reviews error:", error);
+    captureError("POST /api/templates/[slug]/reviews", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

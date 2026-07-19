@@ -6,6 +6,7 @@ import {
   type CreatePresetPackInput,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
+import { captureError } from "@/lib/error-capture";
 
 // GET /api/preset-packs - List all preset packs
 export async function GET(request: NextRequest) {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: packs });
   } catch (error) {
-    console.error("GET /api/preset-packs error:", error);
+    captureError("GET /api/preset-packs", error);
     return NextResponse.json(
       {
         success: false,
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: pack }, { status: 201 });
   } catch (error) {
-    console.error("POST /api/preset-packs error:", error);
+    captureError("POST /api/preset-packs", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { upscalerService } from "@klipai/ai/services/upscaler-service";
 import { UpscalerConfig } from "@klipai/ai";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Upscale error:", error);
+    captureError("POST /api/upscale", error);
     return NextResponse.json(
       {
         success: false,
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({ success: true, data: jobs });
   } catch (error) {
-    console.error("Get upscale job error:", error);
+    captureError("GET /api/upscale", error);
     return NextResponse.json(
       {
         success: false,

@@ -4,12 +4,12 @@
 -- ============================================
 
 -- First, ensure the tables exist (run Prisma migrations first: pnpm db:push)
--- This seed assumes tables: storyboard_template, template_shot are already created
+-- This seed assumes tables: storyboard_templates, template_shots (as per Prisma @@map)
 
 -- ============================================
 -- TEMPLATE 1: Showcase Produk UMKM - 30 Detik
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -41,7 +41,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 1
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -110,7 +110,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 2: Tutorial/How-to UMKM - 60 Detik
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -144,7 +144,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 2
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -238,7 +238,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 3: Promo Flash Sale UMKM - 15 Detik
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -268,7 +268,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 3
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -326,7 +326,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 4: Brand Story UMKM - 90 Detik
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -359,7 +359,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 4
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -475,7 +475,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 5: UGC Style Testimoni Pelanggan - 20 Detik
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -506,7 +506,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 5
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -564,7 +564,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 6: Hero Skincare 15s
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -595,7 +595,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 6: Hero Skincare 15s
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -659,7 +659,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 7: Flash Sale TikTok 10s
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -689,7 +689,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 7: Flash Sale TikTok 10s
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -742,7 +742,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 8: Founder Story 30s
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",
@@ -775,7 +775,7 @@ INSERT INTO "storyboard_template" (
 ) ON CONFLICT (slug) DO NOTHING;
 
 -- Shots for Template 8: Founder Story 30s
-INSERT INTO "template_shot" (
+INSERT INTO "template_shots" (
   id, "templateId", index, "timeRange", duration, description, prompt, "negativePrompt",
   camera, lighting, "generationType", resolution, fps, "cameraMotion", "motionStrength",
   seed, "referenceImageUrl", "referenceRole", "referenceWeight", "brandKitOverlays",
@@ -861,7 +861,7 @@ INSERT INTO "template_shot" (
 -- ============================================
 -- TEMPLATE 9: Ramadhan Promo 15s
 -- ============================================
-INSERT INTO "storyboard_template" (
+INSERT INTO "storyboard_templates" (
   id, name, slug, description, category, tags, industry, format, style,
   "totalDuration", "aspectRatio", "shotCount", "previewThumbnailUrl", "previewVideoUrl",
   "referenceStyleUrl", "referenceStyleType", "brandKitSlots", "creditsCost",

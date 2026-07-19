@@ -6,6 +6,7 @@ import {
   type UpdateTemplateInput,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
+import { captureError } from "@/lib/error-capture";
 
 // Helper: require admin
 async function requireAdmin(request: NextRequest) {
@@ -72,7 +73,7 @@ export async function GET(
       data: template,
     });
   } catch (error) {
-    console.error("GET /api/templates/[slug] error:", error);
+    captureError("GET /api/templates/[slug]", error);
     return NextResponse.json(
       {
         success: false,
@@ -183,7 +184,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    console.error("PATCH /api/templates/[slug] error:", error);
+    captureError("PATCH /api/templates/[slug]", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -264,7 +265,7 @@ export async function DELETE(
       message: "Template unpublished",
     });
   } catch (error) {
-    console.error("DELETE /api/templates/[slug] error:", error);
+    captureError("DELETE /api/templates/[slug]", error);
     return NextResponse.json(
       {
         success: false,

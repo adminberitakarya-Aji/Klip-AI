@@ -1,35 +1,43 @@
-'use client';
+"use client";
 
-import { Button } from '@klipai/ui/components/button';
-import { ArrowRight, Sparkles, Zap, Layers } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { CanvasProvider } from './three/CanvasProvider';
-import { Stars } from './three/objects/Stars';
-import { Float } from './three/objects/Float';
-import { AuroraOrbs } from './three/objects/AuroraOrbs';
-import { gsap } from 'gsap';
-import { useEffect, useRef } from 'react';
+import { Button } from "@klipai/ui/components/button";
+import { ArrowRight, Sparkles, Zap, Layers } from "lucide-react";
+import { motion } from "framer-motion";
+import { CanvasProvider } from "./three/CanvasProvider";
+import { HeroScene } from "./three/HeroScene";
+import { gsap } from "gsap";
+import { useEffect, useRef } from "react";
 
 function HeroContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.fromTo('.hero-title', 
+      gsap.fromTo(
+        ".hero-title",
         { opacity: 0, y: 50 },
-        { opacity: 1, y: 0, duration: 1, ease: 'power3.out' }
+        { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
       );
-      gsap.fromTo('.hero-subtitle', 
+      gsap.fromTo(
+        ".hero-subtitle",
         { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: 'power3.out' }
+        { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: "power3.out" },
       );
-      gsap.fromTo('.hero-cta', 
+      gsap.fromTo(
+        ".hero-cta",
         { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: 'power3.out' }
+        { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: "power3.out" },
       );
-      gsap.fromTo('.hero-badge', 
+      gsap.fromTo(
+        ".hero-badge",
         { opacity: 0, scale: 0.9 },
-        { opacity: 1, scale: 1, duration: 0.8, delay: 0.6, ease: 'back.out(1.7)' }
+        {
+          opacity: 1,
+          scale: 1,
+          duration: 0.8,
+          delay: 0.6,
+          ease: "back.out(1.7)",
+        },
       );
     }, scrollRef);
 
@@ -37,45 +45,48 @@ function HeroContent() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden" ref={scrollRef}>
+    <section
+      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      ref={scrollRef}
+    >
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-black via-neutral-950 to-black" />
         <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-3xl animate-pulse delay-1000" />
-        
-        <CanvasProvider 
-          className="absolute inset-0 pointer-events-none" 
+
+        <CanvasProvider
+          className="absolute inset-0 pointer-events-none"
           camera={{ position: [0, 0, 30], fov: 50 }}
         >
-          <Stars count={3000} radius={50} size={0.15} />
-          <Float position={[0, 0, 0]} scale={1.5} speed={1} />
-          <AuroraOrbs count={5} radius={15} speed={0.5} />
+          <HeroScene />
         </CanvasProvider>
       </div>
 
       {/* Foreground Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         {/* Badge */}
-        <motion.div 
+        <motion.div
           className="hero-badge inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.6, ease: 'back.out(1.7)' }}
+          transition={{ duration: 0.8, delay: 0.6, ease: "back.out(1.7)" }}
         >
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
           </span>
-          <span className="text-sm font-medium text-purple-300">New: Motion Control & 4K Output</span>
+          <span className="text-sm font-medium text-purple-300">
+            New: Motion Control & 4K Output
+          </span>
         </motion.div>
 
         {/* Title */}
-        <motion.h1 
+        <motion.h1
           className="hero-title text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.05] mb-6"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: 'power3.out' }}
+          transition={{ duration: 1, ease: "power3.out" }}
         >
           <span className="block">Generate</span>
           <span className="block bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
@@ -85,26 +96,30 @@ function HeroContent() {
         </motion.h1>
 
         {/* Subtitle */}
-        <motion.p 
+        <motion.p
           className="hero-subtitle text-lg sm:text-xl lg:text-2xl text-neutral-400 max-w-3xl mx-auto mb-10 leading-relaxed"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2, ease: 'power3.out' }}
+          transition={{ duration: 1, delay: 0.2, ease: "power3.out" }}
         >
-          Transform text, images, and videos into stunning cinematic content using 
-          <span className="text-white font-medium">state-of-the-art generative AI models</span>.
-          Text-to-video, image-to-video, video-to-video, and motion control—all in one platform.
+          Transform text, images, and videos into stunning cinematic content
+          using
+          <span className="text-white font-medium">
+            state-of-the-art generative AI models
+          </span>
+          . Text-to-video, image-to-video, video-to-video, and motion
+          control—all in one platform.
         </motion.p>
 
         {/* CTA Buttons */}
-        <motion.div 
+        <motion.div
           className="hero-cta flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: 'power3.out' }}
+          transition={{ duration: 1, delay: 0.4, ease: "power3.out" }}
         >
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="group gap-2 px-8 py-4 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-lg shadow-purple-600/25 transition-all duration-300"
             asChild
           >
@@ -114,9 +129,9 @@ function HeroContent() {
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </a>
           </Button>
-          <Button 
-            size="lg" 
-            variant="outline" 
+          <Button
+            size="lg"
+            variant="outline"
             className="gap-2 px-8 py-4 text-lg border-white/20 hover:border-white/40 hover:bg-white/5 transition-all duration-300"
             asChild
           >
@@ -128,24 +143,40 @@ function HeroContent() {
         </motion.div>
 
         {/* Features Row */}
-        <motion.div 
+        <motion.div
           className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.6, ease: 'power3.out' }}
+          transition={{ duration: 1, delay: 0.6, ease: "power3.out" }}
         >
-          <FeatureItem icon={Zap} title="Text to Video" desc="Generate from prompts" />
-          <FeatureItem icon={Layers} title="Image to Video" desc="Animate your images" />
-          <FeatureItem icon={ArrowRight} title="Video to Video" desc="Transform footage" />
-          <FeatureItem icon={Sparkles} title="Motion Control" desc="Precise camera paths" />
+          <FeatureItem
+            icon={Zap}
+            title="Text to Video"
+            desc="Generate from prompts"
+          />
+          <FeatureItem
+            icon={Layers}
+            title="Image to Video"
+            desc="Animate your images"
+          />
+          <FeatureItem
+            icon={ArrowRight}
+            title="Video to Video"
+            desc="Transform footage"
+          />
+          <FeatureItem
+            icon={Sparkles}
+            title="Motion Control"
+            desc="Precise camera paths"
+          />
         </motion.div>
 
         {/* Trust Indicators */}
-        <motion.div 
+        <motion.div
           className="mt-16 flex flex-wrap items-center justify-center gap-8 text-neutral-500 text-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8, ease: 'power3.out' }}
+          transition={{ duration: 0.8, delay: 0.8, ease: "power3.out" }}
         >
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500" />
@@ -167,21 +198,41 @@ function HeroContent() {
       </div>
 
       {/* Scroll Indicator */}
-      <motion.div 
+      <motion.div
         className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-neutral-500"
         animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
       >
-        <span className="text-xs uppercase tracking-widest">Scroll to explore</span>
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        <span className="text-xs uppercase tracking-widest">
+          Scroll to explore
+        </span>
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 14l-7 7m0 0l-7-7m7 7V3"
+          />
         </svg>
       </motion.div>
     </section>
   );
 }
 
-function FeatureItem({ icon: Icon, title, desc }: { icon: React.ComponentType<{ className?: string }>; title: string; desc: string }) {
+function FeatureItem({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+}) {
   return (
     <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-300">
       <div className="p-3 rounded-lg bg-white/5 border border-white/10">

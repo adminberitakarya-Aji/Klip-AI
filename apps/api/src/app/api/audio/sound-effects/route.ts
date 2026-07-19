@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
 import { SoundEffectsConfig } from "@klipai/ai/pipeline/types";
 import { requireEnv } from "@klipai/config";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
       message: "Sound effects generation job submitted successfully",
     });
   } catch (error) {
-    console.error("Sound Effects API error:", error);
+    captureError("POST /api/audio/sound-effects", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",
@@ -81,7 +82,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error("Sound Effects GET error:", error);
+    captureError("GET /api/audio/sound-effects", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",

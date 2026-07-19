@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { upscalerService } from "@klipai/ai/services/upscaler-service";
 import { FrameInterpolationConfig } from "@klipai/ai";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Interpolate error:", error);
+    captureError("POST /api/interpolate", error);
     return NextResponse.json(
       {
         success: false,
@@ -131,7 +132,7 @@ export async function GET(request: NextRequest) {
     });
     return NextResponse.json({ success: true, data: jobs });
   } catch (error) {
-    console.error("Get interpolate job error:", error);
+    captureError("GET /api/interpolate", error);
     return NextResponse.json(
       {
         success: false,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
 import { BackgroundMusicConfig } from "@klipai/ai/pipeline/types";
 import { requireEnv } from "@klipai/config";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       message: "Music generation job submitted successfully",
     });
   } catch (error) {
-    console.error("Music Generation API error:", error);
+    captureError("POST /api/audio/music", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",
@@ -99,7 +100,7 @@ export async function GET(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error("Music Generation GET error:", error);
+    captureError("GET /api/audio/music", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",

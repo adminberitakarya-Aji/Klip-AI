@@ -8,6 +8,7 @@ import {
   type TemplateQuery,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
+import { captureError } from "@/lib/error-capture";
 
 // GET /api/templates - List templates with filters
 export async function GET(request: NextRequest) {
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("GET /api/templates error:", error);
+    captureError("GET /api/templates", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -237,7 +238,7 @@ export async function POST(request: NextRequest) {
       data: { id: template.id, slug: template.slug },
     });
   } catch (error) {
-    console.error("POST /api/templates error:", error);
+    captureError("POST /api/templates", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(

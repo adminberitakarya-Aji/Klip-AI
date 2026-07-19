@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
 import { TTSConfig } from "@klipai/ai/pipeline/types";
 import { requireEnv } from "@klipai/config";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
       message: "TTS job submitted successfully",
     });
   } catch (error) {
-    console.error("TTS API error:", error);
+    captureError("POST /api/audio/tts", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",
@@ -101,7 +102,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ voices: providerVoices?.voices || [] });
     }
   } catch (error) {
-    console.error("TTS GET error:", error);
+    captureError("GET /api/audio/tts", error);
     return NextResponse.json(
       {
         error: error instanceof Error ? error.message : "Internal server error",

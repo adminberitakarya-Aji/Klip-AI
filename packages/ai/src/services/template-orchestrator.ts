@@ -25,6 +25,14 @@ import { BrandKit } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+/**
+ * Convert Prisma enum format to pipeline string format
+ * Prisma: "TEXT_TO_VIDEO" → Pipeline: "text-to-video"
+ */
+function prismaToPipelineType(prismaType: string): GenerationType {
+  return prismaType.toLowerCase().replace(/_/g, "-") as GenerationType;
+}
+
 // Prisma template with shots type
 type PrismaTemplateWithShots = Awaited<
   ReturnType<typeof prisma.storyboardTemplate.findUnique>
@@ -606,7 +614,7 @@ export class TemplateOrchestrator {
         shotIndex,
         shot,
         prompt: finalPrompt,
-        generationType: shot.generationType as GenerationType,
+        generationType: prismaToPipelineType(shot.generationType),
         params,
         referenceImages:
           referenceImages.length > 0 ? referenceImages : undefined,

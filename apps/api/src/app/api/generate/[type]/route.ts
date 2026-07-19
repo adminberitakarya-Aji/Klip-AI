@@ -10,6 +10,7 @@ import { generationService } from "@klipai/ai/services/generation-service";
 import { generationRequestSchema } from "@klipai/core/schemas";
 import { prisma } from "@klipai/db/client";
 import { GenerationType } from "@klipai/core/types";
+import { captureError } from "@/lib/error-capture";
 
 type TransactionClient = Omit<
   typeof prisma,
@@ -152,7 +153,11 @@ export async function POST(
         referenceImages: parsed.data.referenceImages,
         userPreferences: parsed.data.options as any,
       })
-      .catch(console.error);
+      .catch((e) =>
+        captureError(`POST /api/generate/${type}`, e, {
+          userId: sessionUser?.id,
+        }),
+      );
 
     return NextResponse.json({
       success: true,
@@ -164,7 +169,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error(`${type} error:`, error);
+    captureError(`POST /api/generate/${type}`, error);
 
     if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
       return NextResponse.json(
