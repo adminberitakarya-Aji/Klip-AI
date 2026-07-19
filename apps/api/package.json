@@ -10,25 +10,27 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@klipai/ai": "workspace:*",
+    "@klipai/config": "workspace:*",
+    "@klipai/core": "workspace:*",
+    "@klipai/db": "workspace:*",
+    "@klipai/ui": "workspace:*",
+    "@tanstack/react-query": "^5.40.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "next": "^15.0.0-rc.0",
+    "next-auth": "^5.0.0-beta.18",
     "react": "^19.0.0-rc.0",
     "react-dom": "^19.0.0-rc.0",
-    "next-auth": "^5.0.0-beta.18",
-    "@tanstack/react-query": "^5.40.0",
-    "zod": "^3.23.0",
-    "@klipai/ui": "workspace:*",
-    "@klipai/core": "workspace:*",
-    "@klipai/config": "workspace:*",
-    "@klipai/db": "workspace:*",
-    "@klipai/ai": "workspace:*"
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@klipai/tsconfig": "workspace:*",
-    "typescript": "^5.5.0",
-    "eslint": "^8.57.0",
-    "eslint-config-next": "^15.0.0-rc.0",
+    "@types/node": "^20.12.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/node": "^20.12.0"
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.0.0-rc.0",
+    "typescript": "^5.5.0"
   }
 }

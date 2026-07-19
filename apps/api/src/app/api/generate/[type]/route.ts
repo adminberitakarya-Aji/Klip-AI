@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
+import { getClientIp, rateLimitResponseHeaders } from "@/lib/rate-limit";
 import {
-  perUserGenerateLimiter,
-  perIpGenerateLimiter,
-  getClientIp,
-  rateLimitResponseHeaders,
-} from "@/lib/rate-limit";
+  checkUserRateLimit,
+  checkIpRateLimit,
+} from "@/lib/distributed-rate-limit";
 import { generationService } from "@klipai/ai/services/generation-service";
 import { generationRequestSchema } from "@klipai/core/schemas";
 import { prisma } from "@klipai/db/client";
@@ -49,7 +48,7 @@ export async function POST(
 
   try {
     const ip = getClientIp(request);
-    const ipLimit = perIpGenerateLimiter.check(ip);
+    const ipLimit = await checkIpRateLimit(ip);
     if (!ipLimit.allowed) {
       return NextResponse.json(
         {
@@ -75,7 +74,7 @@ export async function POST(
       );
     }
 
-    const userLimit = perUserGenerateLimiter.check(sessionUser.id);
+    const userLimit = await checkUserRateLimit(sessionUser.id);
     if (!userLimit.allowed) {
       return NextResponse.json(
         {
