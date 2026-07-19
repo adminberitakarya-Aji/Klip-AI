@@ -563,7 +563,7 @@ export class UpscalerService {
       orderBy: { createdAt: "desc" },
     });
 
-    return dbJobs.map((job) => ({
+    return dbJobs.map((job: (typeof dbJobs)[number]) => ({
       id: job.id,
       userId: job.userId,
       generationId: job.generationId || undefined,

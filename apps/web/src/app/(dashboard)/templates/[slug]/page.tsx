@@ -63,7 +63,7 @@ export default async function TemplatePage({ params }: PageProps) {
             createdAt: template.createdAt.toISOString(),
             updatedAt: template.updatedAt.toISOString(),
             brandKitSlots: template.brandKitSlots as any,
-            shots: template.shots.map((s) => ({
+            shots: template.shots.map((s: (typeof template.shots)[number]) => ({
               ...s,
               brandKitOverlays: s.brandKitOverlays as any,
               negativePrompt: s.negativePrompt ?? undefined,

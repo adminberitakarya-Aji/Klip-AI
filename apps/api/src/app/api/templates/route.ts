@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { prisma } from "@klipai/db/client";
+import { prisma } from "@klipai/db";
 import {
   createTemplateSchema,
   templateQuerySchema,
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create template with shots in transaction
-    const template = await prisma.$transaction(async (tx) => {
+    const template = await prisma.$transaction(async (tx: any) => {
       const created = await tx.storyboardTemplate.create({
         data: {
           name: input.name,

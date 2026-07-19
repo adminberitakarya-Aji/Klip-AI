@@ -73,7 +73,7 @@ export default async function TemplateCustomizePage({ params }: PageProps) {
         template={{
           ...template,
           brandKitSlots: template.brandKitSlots as any,
-          shots: template.shots.map((s) => ({
+          shots: template.shots.map((s: (typeof template.shots)[number]) => ({
             ...s,
             brandKitOverlays: s.brandKitOverlays as any,
             negativePrompt: s.negativePrompt ?? undefined,
@@ -86,7 +86,7 @@ export default async function TemplateCustomizePage({ params }: PageProps) {
           })),
           createdAt: template.createdAt.toISOString(),
         }}
-        brandKits={brandKits.map((bk) => ({
+        brandKits={brandKits.map((bk: (typeof brandKits)[number]) => ({
           ...bk,
           colorPalette: bk.colorPalette as string[],
           textValues: ((bk as any).textValues as Record<string, string>) || {},

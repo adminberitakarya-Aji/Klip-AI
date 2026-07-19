@@ -87,15 +87,22 @@ export async function GET(
       4: 0,
       5: 0,
     };
-    stats.forEach((s) => {
+    stats.forEach((s: { rating: number; _count: { rating: number } }) => {
       ratingDistribution[s.rating] = s._count.rating;
     });
 
-    const totalReviews = stats.reduce((sum, s) => sum + s._count.rating, 0);
+    const totalReviews = stats.reduce(
+      (sum: number, s: { rating: number; _count: { rating: number } }) =>
+        sum + s._count.rating,
+      0,
+    );
     const averageRating =
       totalReviews > 0
-        ? stats.reduce((sum, s) => sum + s.rating * s._count.rating, 0) /
-          totalReviews
+        ? stats.reduce(
+            (sum: number, s: { rating: number; _count: { rating: number } }) =>
+              sum + s.rating * s._count.rating,
+            0,
+          ) / totalReviews
         : null;
 
     return NextResponse.json({

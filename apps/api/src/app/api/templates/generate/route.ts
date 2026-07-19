@@ -5,7 +5,67 @@ import {
   templateGenerateSchema,
   type TemplateGenerateInput,
 } from "@klipai/core/schemas/template";
+import { templateOrchestrator } from "@klipai/ai";
 import { z } from "zod";
+
+/**
+ * Fire-and-forget execution of template generation.
+ * Runs asynchronously after the response is sent to the user.
+ * On total failure, refunds credits and marks job as FAILED.
+ */
+async function executeTemplateGeneration(
+  jobId: string,
+  templateId: string,
+  userId: string,
+  brandKitId: string | undefined,
+  customizations: TemplateGenerateInput["customizations"],
+  creditsCost: number,
+) {
+  try {
+    await templateOrchestrator.generateFromTemplate({
+      templateId,
+      userId,
+      brandKitId,
+      customizations,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Template generation failed";
+    console.error("Template generation background job failed:", {
+      jobId,
+      templateId,
+      userId,
+      error: message,
+    });
+
+    // Mark job as FAILED so user doesn't wait forever
+    try {
+      await prisma.templateGenerationJob.update({
+        where: { id: jobId },
+        data: {
+          status: "FAILED",
+          error: message,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (updateError) {
+      console.error("Failed to update job status to FAILED:", updateError);
+    }
+
+    // Refund credits since generation never completed
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { credits: { increment: creditsCost } },
+      });
+    } catch (refundError) {
+      console.error(
+        "Failed to refund credits after failed generation:",
+        refundError,
+      );
+    }
+  }
+}
 
 // POST /api/templates/generate - Start template generation job
 export async function POST(request: NextRequest) {
@@ -117,6 +177,17 @@ export async function POST(request: NextRequest) {
       where: { id: sessionUser.id },
       data: { credits: { decrement: creditsCost } },
     });
+
+    // Fire-and-forget: execute generation in background
+    // User will poll for job status to see progress/result
+    executeTemplateGeneration(
+      job.id,
+      template.id,
+      sessionUser.id,
+      input.brandKitId,
+      input.customizations,
+      creditsCost,
+    );
 
     // Return job ID for polling
     return NextResponse.json({
