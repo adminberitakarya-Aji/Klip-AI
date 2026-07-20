@@ -14,8 +14,8 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(USER)
-  subscription  Subscription @default(FREE)
-  credits       Int       @default(30)
+  credits       Int       @default(0)  // Saldo credits (0 = perlu top-up)
+  hasReceivedFreeCredits Boolean @default(false)  // Apakah sudah dapat free trial
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -27,6 +27,7 @@ model User {
   templateGenerations TemplateGenerationJob[]
   brandKit      BrandKit?
   reviews       TemplateReview[]
+  creditTransactions CreditTransaction[]
 
   @@map("users")
 }
@@ -409,4 +410,78 @@ enum GenerationStatus {
   PROCESSING
   COMPLETED
   FAILED
+}
+
+// ============================================
+// CREDIT SYSTEM (Pay-Per-Use)
+// ============================================
+
+// Credit packages yang bisa dibeli user
+model CreditPackage {
+  id          String   @id @default(cuid())
+  name        String   // "Starter Pack", "Pro Pack", "Business"
+  slug        String   @unique
+  credits     Int      // Jumlah credits yang didapat
+  priceIdr    Int      // Harga dalam Rupiah (cents: 50000 = Rp 500)
+  priceUsd    Float?   // Harga dalam USD (optional)
+  description String?  @db.Text
+  features    String[] // Fitur tambahan, misal: ["Priority Support", "No Watermark"]
+  isActive    Boolean  @default(true)
+  isPopular   Boolean  @default(false)  // Tandai sebagai popular
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  transactions CreditTransaction[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+  @@map("credit_packages")
+}
+
+// Credit transactions (top-up, usage, refund)
+model CreditTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  packageId   String?  // Null untuk free credits atau usage
+  amount      Int      // Jumlah credits (+/-)
+  type        CreditTransactionType
+  description String?  @db.Text
+  
+  // Untuk purchase
+  orderId     String?  // Midtrans order ID
+  paymentStatus PaymentStatus @default(PENDING)
+  
+  // Metadata tambahan (templateId, generationId, etc)
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package     CreditPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([orderId])
+  @@map("credit_transactions")
+}
+
+enum CreditTransactionType {
+  FREE_CREDITS    // Credits gratis (registration bonus, referral, dll)
+  PURCHASE        // Pembelian credits via payment
+  USAGE           // Penggunaan credits untuk generation
+  REFUND          // Refund credits (generation gagal)
+  ADJUSTMENT      // Manual adjustment oleh admin
+  EXPIRY          // Credits expired (jika diterapkan)
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
 }

@@ -11,12 +11,13 @@
     "lib": ["ES2022"],
     "emitDeclarationOnly": false,
     "noEmit": false,
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
       "@klipai/db/*": ["src/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "prisma/**/*"],
   "exclude": ["node_modules", "dist"]
 }

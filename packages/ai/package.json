@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./services/*": "./src/services/*.ts",
     "./providers/*": "./src/providers/*.ts",
-    "./pipeline/types": "./src/pipeline/types.ts"
+    "./pipeline/types": "./src/pipeline/types.ts",
+    "./pricing": "./src/services/pricing.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",

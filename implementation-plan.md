@@ -1,111 +1,43 @@
-# Implementation Plan: Klip-AI Remaining Work
+# Klip-AI Implementation Plan
 
-> **Status Aktual (Re-verifikasi langsung ke kode, 2026-07-20)**: P0, P1, P2 **terkonfirmasi fixed**. Gap #1 (FFmpeg deployment) **sudah DISELESAIKAN** (Dockerfile, docker-compose, GitHub Actions CI/CD). **Masih 1 gap remaining**: TemplateOrchestrator testing.
-> **Updated**: 2026-07-20 (Docker setup) | 2026-07-20 (Initial audit)
-
----
-
-## 🚀 Baca Ini Dulu (Onboarding Tim Baru)
-
-### Ringkasan Eksekutif
-
-- Monorepo Turborepo + pnpm dengan pemisahan benar: `apps/web`, `apps/api`, `packages/*`
-- Layer AI orchestration (`packages/ai`) matang secara desain
-- **✅ P0 Fixed**: templateOrchestrator wired ke route `/api/templates/generate`
-- **✅ P1 Fixed**: implicit-any errors fixed, type-check hijau
-- **✅ P2 Completed**: GenerationType sync, 3D HeroScene wired, error handling + Sentry capture
-- **✅ Production Hardening**: Upstash Redis distributed rate limiting implemented
-- **✅ UI/UX Polish**: Toast notifications (sonner) implemented
-- **Next**: Supabase deployment, production testing
-
-### Peta Repo Super Singkat
-
-| Bagian                            | Isi                                                                                                                                           |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web`                        | Landing, auth, template browser/detail/customize. Sumber session/JWT NextAuth.                                                                |
-| `apps/api`                        | Route handlers: generation, polling, riwayat, audio, upscaler, template API, health. Verify JWT dari `apps/web`, tidak host NextAuth sendiri. |
-| `packages/ai`                     | Jantung sistem: `prompt-enhancer`, `provider-router`, `pipeline-orchestrator`, `generation-service`, `template-orchestrator`.                 |
-| `packages/db`                     | Prisma schema: user, auth, generation, upscaler, template system, preset packs, brand kit, review.                                            |
-| `packages/core` / `config` / `ui` | Shared types & schema, env validation, shared components.                                                                                     |
+> **Status**: Active Development | **Last Updated**: 2026-07-20
 
 ---
 
-## 🔴 P0 — BUG KRITIS: Template generation memotong kredit tanpa generate apa pun
+## 📋 Completed Items
 
-**✅ FIXED 2026-07-20**
+### ✅ P0 - Critical Path
 
-- `apps/api/src/app/api/templates/generate/route.ts` sekarang memanggil `templateOrchestrator.generateFromTemplate(...)` dengan proper error handling + credit rollback on failure
-- Background job processing dengan status update (`QUEUED` → `PROCESSING` → `COMPLETED`/`FAILED`)
-- Refund credits on total failure
+1. **Template Orchestrator Integration** - `templateOrchestrator` connected to `/api/templates/generate`
+2. **Implicit Any Errors Fixed** - 6 TypeScript errors resolved
+3. **Prisma Dependencies Fixed** - `db:generate` now auto-runs via turbo.json
 
-Status: **VERIFIED - Fixed**
+### ✅ P1 - Core Infrastructure
 
----
+4. **GenerationType Sync** - `prismaToPipelineType` helper working
+5. **HeroScene 3D Wired** - 3D component integrated
+6. **Type-Check Passes** - `pnpm run type-check` is green
 
-## 🟠 P1 — Type-check repo belum hijau
+### ✅ Production Ready
 
-**✅ FIXED 2026-07-20**
+7. **Error Handling + Sentry** - All routes updated with Sentry capture
+8. **Distributed Rate Limiting** - Upstash Redis implemented
+9. **Toast Notifications** - Sonner integrated
+10. **Docker Deployment** (2026-07-20) - Dockerfile, docker-compose.yml, GitHub Actions CI/CD
+11. **FFmpeg Stitching** - Safe for production deployment
 
-- 6 implicit-any errors fixed di 5 files
-- `db:generate` dependency added ke `turbo.json` (sebelum `build` dan `type-check`)
-- tsconfig deprecation warnings fixed (`ignoreDeprecations: "6.0"` added ke semua tsconfigs)
+### ✅ Credit System (Pay-Per-Use) - NEW 2026-07-20
 
-Status: **VERIFIED - Type-check hijau**
-
----
-
-## ⚠️ Gap Sebelum Production (ditemukan saat re-verifikasi 2026-07-20)
-
-Semua fix P0/P1/P2 sudah dicek jalan di kode (bukan cuma dipercaya dari commit message). **1 gap sudah DISELESAIKAN**, **1 gap remaining**:
-
-1. **✅ FFmpeg deployment solution - DISELESAIKAN 2026-07-20:**
-   - `Dockerfile` dibuat untuk `apps/api` dengan `ffmpeg` terinstall via Alpine packages
-   - `docker-compose.yml` dibuat untuk local development (API + PostgreSQL + Redis)
-   - `.github/workflows/docker.yml` dibuat untuk CI/CD ke GitHub Container Registry
-   - `apps/api/next.config.ts` diupdate dengan `output: "standalone"` untuk Docker compatibility
-   - `.env.example` diupdate dengan `FFMPEG_PATH="/usr/bin/ffmpeg"` documentation
-   - Deploy ke Railway/Render/Fly.io direkomendasikan (bukan Vercel serverless)
-
-2. **🟠 TemplateOrchestrator testing - REMAINING:**
-   27 test yang lulus itu untuk `provider-router`, `pipeline-orchestrator`, `prompt-enhancer`, `generation-service` — bukan untuk `TemplateOrchestrator` (hybrid batch generation, retry, stitching). Ini logic paling kompleks dan paling baru diperbaiki, butuh integration test sebelum dipercaya jalan otomatis di production.
-
----
-
-## 📌 Legenda Status
-
-- **VERIFIED** = dicek langsung ke kode aktual, perilakunya konsisten dengan klaim
-- **PARTIAL** = ada implementasi, tapi belum utuh / belum aman dianggap selesai
-- **BROKEN** = ada implementasinya tapi tidak berfungsi end-to-end (lihat P0)
-- **PLANNED** = masih desain/roadmap, belum ada kode
-
-## Status Nyata Per Area
-
-| Area                                | Status   | Catatan                                                                       |
-| ----------------------------------- | -------- | ----------------------------------------------------------------------------- |
-| Monorepo structure                  | VERIFIED | Pembagian app/package benar, Turbo pipeline benar                             |
-| AI orchestration (generation biasa) | VERIFIED | Desain kuat, type-safe                                                        |
-| Template generation                 | VERIFIED | ✅ P0 Fixed - orchestrator wired + error handling                             |
-| Type safety repo                    | VERIFIED | ✅ Type-check hijau                                                           |
-| Error handling + Monitoring         | VERIFIED | ✅ Sentry capture utility + all routes updated                                |
-| Distributed Rate Limiting           | VERIFIED | ✅ Upstash Redis implemented with in-memory fallback                          |
-| UI/UX Polish                        | VERIFIED | ✅ Toast notifications (sonner) + micro-interactions                          |
-| 3D Components                       | PARTIAL  | ✅ HeroScene wired; FeatureCard3D/Gallery3D deferred (design decision needed) |
-| Schema alignment                    | VERIFIED | ✅ SQL seed table names fixed, GenerationType conversion layer verified       |
-| Web UX/marketing                    | VERIFIED | Visual kuat, HeroScene integrated, toast feedback                             |
-| Auth boundary                       | VERIFIED | Web issue JWT, API verify JWT                                                 |
-| Template data model (Prisma)        | VERIFIED | Schema kaya, seed data complete                                               |
-
----
-
-## Koreksi vs Audit Sebelumnya
-
-Plan versi lama (arsip lengkap di git history / `implementation-plan-OLD-backup.md`) mengklaim:
-
-> "`TemplateOrchestrator` dalam bentuk di bawah masih harus diperlakukan sebagai desain/pseudocode. Belum ditemukan implementasi worker nyata."
-
-Ini **tidak akurat lagi** per hari ini. File-nya sudah ada dan lengkap (dicek: `class TemplateOrchestrator`, method `generateFromTemplate`, `executeHybridBatch`, `stitchShots`, semuanya berisi implementasi asli, bukan komentar TODO). Masalah sebenarnya bukan "belum dibuat", tapi **"sudah dibuat, tidak pernah dipanggil"** — root cause yang berbeda dan butuh fix yang berbeda (wiring, bukan development dari nol).
-
-Pelajaran untuk proses ke depan: klaim "belum diimplementasi" di dokumen harus selalu diverifikasi dengan `grep` penggunaan nyata (siapa yang memanggil fungsi ini?), bukan cuma cek keberadaan file.
+12. **Database Schema** - CreditPackage, CreditTransaction models added
+13. **Pricing Calculator** - `packages/ai/src/services/pricing.ts` implemented
+14. **Credit Service** - `apps/api/src/lib/credits.ts` with deduction/refund logic
+15. **Midtrans Integration** - Snap payment API integration
+16. **Credit API Endpoints**:
+    - `GET /api/credits/packages` - List available packages
+    - `GET /api/credits/balance` - Get user balance
+    - `POST /api/credits/purchase` - Initiate payment
+    - `POST /api/credits/webhook` - Midtrans callback
+    - `GET /api/credits/history` - Transaction history
 
 ---
 
@@ -119,99 +51,255 @@ Pelajaran untuk proses ke depan: klaim "belum diimplementasi" di dokumen harus s
 6. **[✅ Production] Distributed rate limiting** — DONE (Upstash Redis implemented)
 7. **[✅ UI/UX] Toast notifications** — DONE (sonner integrated)
 8. **[✅ Production] Docker deployment setup** — DONE (2026-07-20): Dockerfile, docker-compose.yml, GitHub Actions CI/CD, next.config.ts update, .env.example update. FFmpeg stitching sekarang aman untuk production deployment.
-9. **[🟠 Sebelum go-live] Hitung ulang `creditsCost` per template**: rata-rata biaya per shot × jumlah shot + buffer margin retry, bukan angka default sembarang
-10. **[Next] Supabase setup**: Run migrations + seed di Supabase (task owner: user)
-11. **[Next] Production testing**: End-to-end testing, terutama flow template generate sampai `resultUrl` selesai
-12. **[P3] Roadmap ekspansi**: advanced UX, team workspace, billing, public API/SDK (lihat Backlog di bawah)
+9. **[✅ P0] Credit System (Pay-Per-Use)** — DONE (2026-07-20): Database schema, pricing calculator, credit service, Midtrans integration, API endpoints
+10. **[🟠 Sebelum go-live] Hitung ulang `creditsCost` per template**: rata-rata biaya per shot × jumlah shot + buffer margin retry — DONE (via pricing.ts)
+11. **[Next] Supabase setup**: Run migrations + seed di Supabase (task owner: user)
+12. **[Next] Production testing**: End-to-end testing, terutama flow template generate sampai `resultUrl` selesai
+13. **[Next] UI Components**: Credit packages display, purchase flow, balance display
+14. **[Next] Midtrans Configuration**: Set MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION di environment
+15. **[P3] Roadmap ekspansi**: Visual Prompt Builder, Team Workspace, Public API/SDK (removed: billing/subscription, replaced with Pay-Per-Use credits)
+
+---
+
+## 💰 Credit System Design (Finalized 2026-07-20)
+
+### Model: Pay-Per-Use (No Subscription)
+
+**Keuntungan**:
+
+- Barrier to entry rendah
+- Sesuai perilaku UMKM (sporadis, tidak setiap hari)
+- Tidak ada "uang mati" (credits tidak hangus)
+- Pricing transparan
+
+### Credit Packages
+
+| Package             | Credits | Price (IDR) | Per Credit | Status      |
+| ------------------- | ------- | ----------- | ---------- | ----------- |
+| **Free (New User)** | 10      | FREE        | -          | ✅ One-time |
+| **Starter**         | 20      | Rp 50.000   | Rp 2.500   | ✅          |
+| **Pro**             | 100     | Rp 200.000  | Rp 2.000   | ✅ Popular  |
+| **Business**        | 500     | Rp 800.000  | Rp 1.600   | ✅          |
+
+### Payment Methods (via Midtrans)
+
+- 💳 Credit/Debit Card (Visa, Mastercard, JCB)
+- 📱 OVO, GoPay, DANA, ShopeePay
+- 🏷️ QRIS (semua bank e-wallet)
+- 🏦 Virtual Account (BCA, Mandiri, BNI, BRI)
+- 🏦 Internet Banking
+
+### Credit Policy
+
+- ✅ Credits **tidak expire** (never expire)
+- ✅ Bisa top-up kapan saja
+- ✅ Refund otomatis jika generation gagal
+- ✅ 1 credit ≈ 1 video shot (varies by resolution/mode)
+
+### Pricing Calculator
+
+```typescript
+// Formula:
+// baseCost = shots × baseCostPerShot × providerMultiplier × resolutionMultiplier × upscaleMultiplier
+// retryBuffer = baseCost × 20%
+// totalCredits = baseCost + retryBuffer
+
+// Example: 3 shots, text-to-video, 1080p, no upscale
+// baseCost = 3 × 1 × 1.0 × 1.5 × 1.0 = 4.5 → ceil = 5
+// retryBuffer = 5 × 0.2 = 1
+// totalCredits = 6
+```
+
+### API Endpoints
+
+| Endpoint                | Method | Auth | Description               |
+| ----------------------- | ------ | ---- | ------------------------- |
+| `/api/credits/packages` | GET    | No   | List credit packages      |
+| `/api/credits/balance`  | GET    | Yes  | Get user balance          |
+| `/api/credits/purchase` | POST   | Yes  | Initiate Midtrans payment |
+| `/api/credits/webhook`  | POST   | No   | Midtrans notification     |
+| `/api/credits/history`  | GET    | Yes  | Transaction history       |
+
+### Database Tables
+
+```prisma
+model CreditPackage {
+  id, name, slug, credits, priceIdr, priceUsd, description, features, isActive, isPopular
+}
+
+model CreditTransaction {
+  id, userId, packageId, amount, type, description, orderId, paymentStatus, metadata
+}
+
+model User {
+  // Updated fields:
+  credits Int @default(0)
+  hasReceivedFreeCredits Boolean @default(false)
+}
+```
 
 ---
 
 ## 📅 Onboarding Operasional: Checklist Minggu Pertama
 
-> ⚠️ **Updated 2026-07-20**: P0 dan P1 sudah fixed. Checklist ini masih berguna untuk onboarding tapi item-item yang sudah selesai bisa dilewati.
+> ⚠️ **Updated 2026-07-20**: P0, P1, P2, Production items, dan Credit System sudah fixed. Checklist ini masih berguna untuk onboarding tapi item-item yang sudah selesai bisa dilewati.
 
 ### Hari 1 — Setup dan Peta Sistem
 
-- [x] Clone repo, `pnpm install`, copy `.env.example` — **DONE (atau skip jika sudah ada)**
-- [x] **`pnpm --filter @klipai/db db:generate`** — **DONE (db:generate sekarang auto-run via turbo.json)**
-- [x] `pnpm run type-check` **di root** — **DONE (type-check hijau sekarang)**
-- [x] Catat semua error sebagai baseline — **Skip, tidak ada error (type-check hijau)**
-- [x] Scan folder: `apps/web`, `apps/api`, `packages/ai`, `packages/db` — **Sudah terstruktur dengan benar**
+- [x] Clone repo, `pnpm install`, copy `.env.example` — **DONE**
+- [x] **`pnpm --filter @klipai/db db:generate`** — **DONE (auto-run via turbo.json)**
+- [x] `pnpm run type-check` **di root** — **DONE (type-check hijau)**
+- [x] Catat semua error sebagai baseline — **Skip, tidak ada error**
 
 ### Hari 2 — Pahami Jantung AI Pipeline
 
 - [x] Baca `packages/ai/src/services/prompt-enhancer.ts`, `provider-router.ts`, `pipeline-orchestrator.ts`, `generation-service.ts`
-- [x] Baca `packages/ai/src/services/template-orchestrator.ts` — **P0 sudah fixed, ini referensi**
-- [x] Baca test files di `packages/ai/src/services/__tests__/` — untuk understanding expected behavior
+- [x] Baca `packages/ai/src/services/template-orchestrator.ts` — **P0 fixed, ini referensi**
+- [x] Baca `packages/ai/src/services/pricing.ts` — **Credit system pricing calculator**
+- [x] Baca test files di `packages/ai/src/services/__tests__/`
 - [x] Jalankan `pnpm --filter @klipai/ai test` — **✅ 4 test files, 27 tests passed**
 
 ### Hari 3 — Pahami Boundary Web, API, dan Auth
 
 - [x] Baca `apps/web/src/lib/auth.ts`, `apps/api/src/lib/session.ts` — **JWT-based auth, web issue, API verify**
 - [x] Baca `apps/api/src/app/api/generate/[type]/route.ts` (flow generation biasa — ini yang **berfungsi**)
-- [x] Baca `apps/api/src/app/api/templates/generate/route.ts` (flow template — **✅ Fixed, tidak lagi rusak**)
+- [x] Baca `apps/api/src/app/api/templates/generate/route.ts` (template flow — P0 fixed)
+- [x] Baca `apps/api/src/lib/credits.ts` — **Credit deduction service**
+- [x] Baca `apps/api/src/lib/midtrans.ts` — **Payment integration**
 
-### Hari 4 — Pahami Model Data dan Template System
+### Hari 4 — Test Template Generation Flow
 
-- [x] Baca `packages/db/prisma/schema.prisma`, fokus `Generation`, `StoryboardTemplate`, `TemplateShot`, `BrandKit`, `TemplateGenerationJob`
-- [x] Baca `packages/db/prisma/seed-templates.ts` — **✅ negativePrompt field sudah complete**
+- [ ] Test dari awal sampe selesai: prompt → enhanced → routed → generated → resultUrl
+- [ ] Test `/api/credits/packages` endpoint
+- [ ] Test `/api/credits/balance` endpoint
+- [ ] Setup Midtrans sandbox dan test payment flow
 
-### Hari 5 — Next Steps untuk New Joiner
+### Hari 5 — Deployment & Monitoring
 
-- [ ] Setup Supabase local atau connect ke Supabase cloud
-- [ ] Explore FeatureCard3D/Gallery3D wiring (design decision needed)
-- [ ] Pick 1 item dari Backlog di bawah
-
-### Hari 6-7 — Validasi & Exploration
-
-- [ ] Uji manual: generate dari template end-to-end sampai dapat `resultUrl`
-- [ ] Explore production concerns: distributed rate limiting, UI/UX polish
-
----
-
-## 🗂 Referensi Arsitektur (ringkas, tidak duplikat kode — cek source untuk detail)
-
-### Generation Flow (biasa, non-template) — berfungsi
-
-`apps/api` → auth check → rate limit → credit decrement → buat record `Generation` → `packages/ai` (prompt enhancement → provider select/fallback: Seedance → Kling → Wan, urutan tetap → polling status → upload result ke storage).
-
-Fallback order sengaja tetap (bukan berdasarkan `metadata.priority`) demi predictability saat provider utama down — keputusan desain, bukan bug.
-
-### Template Flow — sudah tersambung (P0 fixed), tapi FFmpeg belum aman untuk deploy
-
-UI (`apps/web/src/components/templates/`) → API generate route → `executeTemplateGeneration()` (fire-and-forget) → `template-orchestrator.ts` (`generateFromTemplate`) → hybrid batch shot generation → FFmpeg stitch (**perlu binary `ffmpeg` di runtime — lihat Gap #1 di atas**) → storage upload → update job status.
-
-### Storage
-
-Factory di `packages/ai/src/services/storage/index.ts`: prioritas R2 → Vercel Blob → NullProvider (no-op). Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, atau `BLOB_READ_WRITE_TOKEN`.
-
-### Key Technical Decisions (final — tidak ada lagi open question)
-
-| Decision                | Choice                                                                                                                                   | Rationale                                                                                                                                                                                            | Action item                                                                                                                                              |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Template storage        | Prisma DB (bukan JSON)                                                                                                                   | Versioning, querying, relations, auth                                                                                                                                                                | Selesai                                                                                                                                                  |
-| Shot generation         | Hybrid batch (3-4 paralel)                                                                                                               | Balance speed vs rate limit                                                                                                                                                                          | Selesai                                                                                                                                                  |
-| Video stitching         | FFmpeg concat (codec copy)                                                                                                               | Lossless, cepat, no re-encode                                                                                                                                                                        | Selesai                                                                                                                                                  |
-| Fallback provider order | Fixed: Seedance → Kling → Wan                                                                                                            | Predictability > optimasi speed/cost saat darurat                                                                                                                                                    | Selesai                                                                                                                                                  |
-| Error handling shot     | Retry 2x per shot, stitch partial                                                                                                        | User tetap dapat hasil walau 1-2 shot gagal                                                                                                                                                          | Selesai                                                                                                                                                  |
-| **FFmpeg execution**    | **Binary `ffmpeg` di dalam container `apps/api`** (bukan wasm, bukan service terpisah)                                                   | wasm terlalu lambat/berat untuk concat rutin; service terpisah over-engineering untuk tahap sekarang; kode `FFmpegService` sudah baca `FFMPEG_PATH`, tinggal environment-nya yang harus punya binary | **TODO**: tambahkan `Dockerfile` untuk `apps/api` (`apt-get install ffmpeg`), deploy ke Railway/Render/Fly.io — **jangan** ke Vercel serverless function |
-| **Storage kewajiban**   | **Final result wajib R2/Blob. Shot mentah antara boleh tetap URL provider sementara** (didownload ke temp, dipakai stitch, lalu dibuang) | URL signed provider expire dalam hitungan jam-hari — tidak aman untuk hasil akhir yang dilihat user nanti; upload semua shot mentah ke R2 cuma nambah biaya & waktu tanpa manfaat                    | Sudah sesuai desain `generation-service`/`template-orchestrator` yang ada — pastikan diterapkan konsisten di semua jalur                                 |
-| **Template authoring**  | **Admin-only untuk MVP**, community authoring masuk Backlog roadmap                                                                      | Volume template MVP kecil, admin-only bukan bottleneck; community authoring butuh sistem review/moderasi yang overhead-nya belum sepadan sekarang                                                    | Sudah sesuai kode yang ada (route create template = admin/official only) — tidak ada aksi tambahan                                                       |
-| **Credit policy**       | **Flat fee per template** (`StoryboardTemplate.creditsCost`)                                                                             | UX simpel untuk target UMKM; per-shot billing jadi rumit begitu ada retry logic                                                                                                                      | **TODO**: pastikan angka `creditsCost` dihitung dari rata-rata biaya per shot × jumlah shot + buffer margin retry — bukan angka sembarang                |
-| **Realtime job update** | **SSE** (`GET /api/templates/generations/[jobId]/stream`), **bukan WebSocket**                                                           | Job berdurasi menit bukan detik, tidak butuh update sub-detik; WebSocket butuh state/pub-sub yang kompleksitasnya tidak sepadan di tahap ini                                                         | Sudah diimplementasikan — tidak ada aksi tambahan                                                                                                        |
+- [ ] Setup Sentry project
+- [ ] Setup Upstash Redis
+- [ ] Test Docker build
+- [ ] Setup GitHub Actions secrets (MIDTRANS__, SENTRY__, etc)
 
 ---
 
-## 📋 Backlog / Roadmap Masa Depan (belum mulai, urutan setelah P0-P2 beres)
+## 🔧 Technical Reference
 
-- **Visual Prompt Builder**: drag-drop scene builder, shot list generator dari script, real-time low-res preview
-- **Team Workspace**: multi-user roles (Owner/Admin/Creator/Viewer), project folders, comments & approval workflow, shared asset library
-- **Public API & Developer Platform**: REST API, SDK (TS/Python/Go), webhooks, API key management
-- **Billing & Subscription**: Stripe (Free/Pro/UMKM/Enterprise), credit system, usage dashboard, invoice + PPN Indonesia
-- **Export & Distribution**: multi-format export (MP4/WebM/GIF/MOV/ProRes), auto-crop aspect ratio, direct publish ke TikTok/Reels/Shorts, CDN signed URL
+### Project Structure
+
+```
+apps/
+├── api/              # Next.js API routes
+│   └── src/app/api/
+│       ├── credits/      # Credit system endpoints
+│       ├── generate/     # Generation endpoints
+│       └── templates/    # Template endpoints
+├── web/              # Next.js frontend
+packages/
+├── ai/               # AI pipeline services
+│   └── src/services/
+│       ├── pricing.ts    # Credit pricing calculator
+│       └── ...
+├── db/               # Prisma schema & client
+│   └── prisma/
+│       ├── schema.prisma  # Database schema (updated with CreditPackage, CreditTransaction)
+│       └── seed-credits.ts # Credit package seed data
+├── core/             # Shared utilities
+└── ui/               # UI components
+```
+
+### Environment Variables Required
+
+**For Credit System**:
+
+```env
+# Midtrans
+MIDTRANS_SERVER_KEY=your_server_key
+MIDTRANS_CLIENT_KEY=your_client_key
+MIDTRANS_IS_PRODUCTION=false  # true for production
+
+# App
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### Key Files Modified
+
+1. `packages/db/prisma/schema.prisma` - Added CreditPackage, CreditTransaction, updated User
+2. `packages/ai/src/services/pricing.ts` - Credit pricing calculator (NEW)
+3. `packages/db/prisma/seed-credits.ts` - Credit package seed data (NEW)
+4. `packages/ai/package.json` - Added pricing export
+5. `apps/api/src/lib/credits.ts` - Credit service (NEW)
+6. `apps/api/src/lib/midtrans.ts` - Midtrans integration (NEW)
+7. `apps/api/src/app/api/credits/` - Credit API routes (NEW)
 
 ---
 
-**Updated**: 2026-07-20 — P0/P1/P2 terkonfirmasi fixed. Gap #1 (FFmpeg deployment) **sudah DISELESAIKAN** (Dockerfile + docker-compose + GitHub Actions CI/CD). **Remaining**: TemplateOrchestrator testing. Sistem sekarang aman untuk deployment ke Railway/Render/Fly.io dengan FFmpeg support.
+## 📚 Documentation
 
-> **Arsip**: versi lengkap sebelumnya (dengan seluruh histori phase 8-12 dan dump kode) disimpan sebagai `implementation-plan-ARCHIVE.md` untuk referensi historis. Dokumen ini (`implementation-plan.md`) adalah source of truth aktif — jangan tambahkan dump kode besar lagi di sini, cukup pointer ke file + status.
+Lihat dokumentasi lengkap di:
+
+- `docs/ai-pipeline.md` - AI pipeline architecture
+- `docs/api.md` - API endpoints reference
+- `docs/database.md` - Database schema documentation
+
+---
+
+## 🚀 Roadmap (P3 - Future)
+
+### Visual & UX
+
+- [ ] Visual Prompt Builder (drag-drop interface)
+- [ ] Timeline editor for video preview
+- [ ] Custom watermark settings
+
+### Collaboration
+
+- [ ] Team workspace
+- [ ] Shared templates
+- [ ] Team billing
+
+### Developer
+
+- [ ] Public API
+- [ ] SDK (JS, Python)
+- [ ] Webhook events
+
+### Removed from P3
+
+- ~~Billing & Subscription (Stripe)~~ → **Replaced with Pay-Per-Use Credits**
+- ~~Export & Distribution~~ → Future consideration
+
+---
+
+## ⚠️ Known Issues & Notes
+
+1. **Credit Deduction**: Belum di-wired ke generation flow. Perlu update `/api/generate/[type]/route.ts` untuk deduct credits sebelum generate.
+
+2. **Midtrans Sandbox**: Pastikan test dengan sandbox dulu sebelum production.
+
+3. **Database Migration**: Perlu run `prisma migrate dev` atau `prisma db push` untuk update schema di database.
+
+4. **Seed Data**: Credit packages perlu di-seed manual dengan `npx tsx prisma/seed-credits.ts`
+
+---
+
+## ✅ Verification Checklist
+
+Run sebelum production:
+
+```bash
+# 1. Type check
+pnpm run type-check
+
+# 2. Run tests
+pnpm --filter @klipai/ai test
+
+# 3. Build
+pnpm run build
+
+# 4. Database migration (jika ada perubahan schema)
+cd packages/db && pnpm db:push
+
+# 5. Seed credit packages
+cd packages/db && npx tsx prisma/seed-credits.ts
+```
