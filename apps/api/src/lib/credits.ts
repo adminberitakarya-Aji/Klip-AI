@@ -106,7 +106,7 @@ export async function deductCredits(
           type,
           description,
           paymentStatus: PaymentStatus.COMPLETED,
-          metadata: metadata || undefined,
+          metadata: (metadata as object) || undefined,
         },
       });
 
@@ -223,7 +223,7 @@ export async function addCredits(
           type,
           description,
           paymentStatus: PaymentStatus.COMPLETED,
-          metadata: metadata || undefined,
+          metadata: (metadata as object) || undefined,
         },
       });
 
