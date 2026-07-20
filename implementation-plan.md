@@ -75,7 +75,12 @@
 9. **[✅ P0] Credit System (Pay-Per-Use)** — DONE (2026-07-20): Database schema, pricing calculator, credit service, Midtrans integration, API endpoints
 10. **[✅ DONE] Hitung `creditsCost` per template pakai `pricing.ts`** — DONE (2026-07-20). Fungsi `calculateCreditsFromShots()` sudah diimplementasi di route `POST /api/templates` dan `PATCH /api/templates/[slug]`. CreditsCost sekarang auto-calculated dari shots (generation type + resolution). Tidak perlu input manual dari admin.
 11. **[✅ DONE] Supabase setup**: Run migrations + seed di Supabase — DONE (user)
-12. **[⚠️ Perlu verifikasi ulang] Production testing**: ditandai "selesai" sebelumnya, tapi tidak ada file/artifact test e2e ditemukan di repo (`find . -iname "*e2e*"` kosong) — kemungkinan testing manual belum didokumentasikan sebagai test otomatis. Lihat item near-term di Roadmap API/Backend di bawah.
+12. **[✅ DONE 2026-07-20] Production testing - E2E tests implemented**:
+    - `apps/api/src/app/api/credits/credits.api.test.ts` - 13 tests untuk credit system API
+    - `apps/api/src/app/api/templates/template-generation.e2e.test.ts` - 16 tests untuk template generation flow
+    - `apps/api/src/app/api/credits/webhook/webhook.test.ts` - 8 tests untuk webhook signature verification
+    - Total: **37 tests passing**
+    - Script test ditambahkan ke `apps/api/package.json`: `pnpm --filter @klipai/api test`
 13. Lihat **🗺 Roadmap (dibagi Web/Frontend dan API/Backend)** di bawah untuk daftar lengkap next steps, termasuk UI credit system dan konfigurasi Midtrans.
 
 ---
@@ -186,19 +191,53 @@ model User {
 - [x] Baca `apps/api/src/lib/credits.ts` — **Credit deduction service**
 - [x] Baca `apps/api/src/lib/midtrans.ts` — **Payment integration**
 
-### Hari 4 — Test Template Generation Flow
+### Hari 4 — Test Template Generation Flow ✅ DONE 2026-07-20
 
-- [ ] Test dari awal sampe selesai: prompt → enhanced → routed → generated → resultUrl
-- [ ] Test `/api/credits/packages` endpoint
-- [ ] Test `/api/credits/balance` endpoint
-- [ ] Setup Midtrans sandbox dan test payment flow
+- [x] E2E tests implemented: 37 tests covering credit system, template generation, webhook security
+- [x] API Testing Guide created: `docs/api-testing-guide.md`
+- [x] Midtrans Sandbox Setup Guide created: `docs/midtrans-sandbox-setup.md`
+- [x] Credit API endpoints test coverage:
+  - GET /api/credits/packages (13 tests)
+  - GET /api/credits/balance
+  - POST /api/credits/purchase
+  - POST /api/credits/webhook (8 tests - signature verification)
+  - GET /api/credits/history
+- [x] Template generation flow tests (16 tests):
+  - Job creation and credit deduction
+  - Credit cost calculation
+  - Job status polling
+  - Credit refund on failure
+  - Brand kit validation
+  - Authentication requirements
 
-### Hari 5 — Deployment & Monitoring
+**Manual testing still requires:**
 
-- [ ] Setup Sentry project
-- [ ] Setup Upstash Redis
-- [ ] Test Docker build
-- [ ] Setup GitHub Actions secrets (MIDTRANS__, SENTRY__, etc)
+- Running API server (`cd apps/api && pnpm dev`)
+- Valid Midtrans sandbox credentials
+- Test card numbers: 4811 1111 1111 1114
+
+### Hari 5 — Deployment & Monitoring ✅ DONE 2026-07-20
+
+**Documentation created:**
+
+- `docs/deployment-guide.md` - Complete deployment guide with:
+  - Environment variables setup
+  - Supabase, Upstash, Sentry, Midtrans setup instructions
+  - GitHub Actions deployment steps
+  - Manual deployment instructions
+
+- `docker-compose.yml` - Updated with Midtrans environment variables
+
+- `.github/workflows/ci.yml` - Updated with:
+  - Separate test jobs for AI and API packages
+  - Docker build test job
+  - Better CI flow: lint → type-check → build → test → docker-build
+
+**Required for production:**
+
+- Configure GitHub secrets (see docs/deployment-guide.md)
+- Create accounts: Supabase, Upstash, Sentry, Midtrans
+- Run database migrations and seed credit packages
 
 ---
 
@@ -263,44 +302,88 @@ Lihat dokumentasi lengkap di:
 
 ---
 
-## 🗺 Roadmap (Dibagi 2: Web/Frontend dan API/Backend) — 2026-07-20
+## 🏆 Roadmap Menuju Tier A / A+ / S — 2026-07-20
 
-> Dipisah supaya jelas siapa/tim mana yang kerjakan apa. Tiap bagian ada 2 lapis: **Near-term** (perlu sebelum atau segera setelah launch) dan **Future** (P3, ekspansi jangka panjang).
+> **Tier saat ini: B (Late MVP / Pre-Beta)** — fondasi arsitektur solid, bug kritis (orchestrator orphaned, webhook fraud) sudah ditemukan & diperbaiki, tapi belum lulus syarat "layak dipercaya user real" (test e2e, CI penuh, UI credit system). Tiap tier di bawah punya **gerbang kelulusan** yang bisa dicek objektif — bukan checklist aspirasi, tapi syarat yang sudah/belum terpenuhi berdasarkan audit langsung ke kode.
 
-### 1️⃣ Web / Frontend / UI-UX
+---
 
-**Near-term — sebelum launch credit system ke user real**
+### 🥈 Tier A — "Beta yang layak dipercaya user real"
+
+**Definisi**: semua flow inti (generate, payment) sudah teruji end-to-end, CI menjalankan seluruh test tanpa terlewat, tidak ada lagi kode orphaned/duplikat yang berisiko drift, UI credit system lengkap menyusul backend.
+
+**1️⃣ Web / Frontend / UI-UX**
 
 - [ ] UI credit packages: display paket (Starter/Pro/Business), tombol beli
 - [ ] Flow purchase: integrasi Midtrans Snap di client (`snapToken` dari `POST /api/credits/purchase`)
 - [ ] Halaman balance kredit di dashboard user
-- [ ] Halaman callback Midtrans: `/credits/success`, `/credits/error`, `/credits/pending` (URL-nya sudah didefinisikan di `midtrans.ts`, tapi belum dicek apakah halamannya sudah ada di `apps/web`)
+- [ ] Halaman callback Midtrans: `/credits/success`, `/credits/error`, `/credits/pending` (URL sudah didefinisikan di `midtrans.ts`, halaman belum dicek ada di `apps/web`)
 - [ ] Riwayat transaksi kredit (pakai `GET /api/credits/history` yang sudah ada)
+- [ ] Error state & loading state konsisten di semua flow generate/purchase (skeleton, retry button, pesan error yang jelas — bukan cuma spinner tak berujung)
 
-**Future (P3)**
+**2️⃣ API / Backend**
 
-- [ ] Visual Prompt Builder (drag-drop interface)
-- [ ] Timeline editor untuk preview video
-- [ ] Custom watermark settings
-- [ ] Team workspace UI (kalau kolaborasi tim jadi prioritas)
-- [ ] Shared templates UI
+- [ ] Tambahkan `"test": "vitest run"` ke `apps/api/package.json` — test webhook Midtrans (8 test, sudah lulus manual) **belum jalan otomatis di CI**
+- [ ] Rapikan duplikasi formula pricing — 3 salinan sekarang (`pricing.ts` + 2 route API), satukan jadi 1 sumber kebenaran
+- [ ] Fix 3 implicit-any di `apps/api/src/lib/credits.ts` (parameter `tx`)
+- [ ] Set `MIDTRANS_SERVER_KEY`/`CLIENT_KEY`/`IS_PRODUCTION` di environment production
+- [ ] **E2E test wajib** (minimum 2): flow generate (template → orchestrator → `resultUrl` selesai) dan flow payment (purchase → webhook signature valid → kredit bertambah, **plus** webhook signature invalid → ditolak)
+- [ ] Verifikasi Sentry benar-benar menerima event di staging (bukan cuma kode `captureError` terpasang — cek dashboard Sentry ada data masuk)
+- [ ] Verifikasi Upstash rate limit jalan nyata di staging (bukan cuma fallback in-memory karena env kosong)
 
-### 2️⃣ API / Backend
+**Gerbang lulus Tier A**: `pnpm run type-check` dan `pnpm run test` hijau total di CI (bukan cuma lokal), minimal 2 e2e test lulus, tidak ada TODO P0/P1 tersisa di dokumen ini.
 
-**Near-term — sebelum production**
+---
 
-- [ ] Tambahkan `"test": "vitest run"` ke `apps/api/package.json` — test webhook Midtrans (8 test, sudah lulus manual) **belum jalan otomatis di CI** karena tidak ada script `test`
-- [ ] Rapikan duplikasi formula pricing — saat ini ada **3 salinan** logic yang sama (`packages/ai/src/services/pricing.ts`, `apps/api/.../templates/route.ts`, `apps/api/.../templates/[slug]/route.ts`). 2 salinan di route API lebih sederhana dari aslinya (hilang `upscaleMultiplier` dan 4 tipe generation lanjutan) — sebaiknya kedua route import langsung dari `pricing.ts` supaya tidak drift
-- [ ] Fix 3 implicit-any baru di `apps/api/src/lib/credits.ts` (parameter `tx` di `prisma.$transaction`)
-- [ ] Set `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION` di environment production (Docker/Railway/Render secrets)
-- [ ] End-to-end test asli untuk flow generate (template → orchestrator → resultUrl) dan flow payment (purchase → webhook → credit bertambah) — belum ada file test e2e di repo
+### 🥇 Tier A+ — "Production-grade, siap scale kecil-menengah"
 
-**Future (P3)**
+**Definisi**: sistem bisa dipercaya jalan tanpa pengawasan manual terus-menerus — ada observability buat tahu kalau ada yang rusak, ada rencana kalau database/storage bermasalah, dan pertahanan keamanan berlapis (bukan cuma 1 titik gagal).
 
-- [ ] Public API
-- [ ] SDK (JS, Python)
-- [ ] Webhook events (buat integrasi pihak ketiga, beda dari webhook Midtrans yang sudah ada)
-- [ ] Team billing (backend)
+**1️⃣ Web / Frontend / UI-UX**
+
+- [ ] Performance budget: Lighthouse score (target ≥90 performance, ≥90 accessibility) untuk halaman utama (landing, template browse, generate)
+- [ ] Accessibility audit WCAG AA — penting karena target UMKM mencakup pengguna dengan device/koneksi bervariasi
+- [ ] Analytics funnel: berapa % user yang landing → browse template → generate → (kalau ada payment) beli kredit — buat tahu di mana user drop-off
+- [ ] Image/video loading dioptimasi (lazy load, CDN cache header) — relevan karena produk ini video-heavy
+
+**2️⃣ API / Backend**
+
+- [ ] Observability dashboard: error rate, latency p50/p95/p99 per endpoint, alert otomatis kalau anomali (bukan cuma log yang harus dicek manual)
+- [ ] Load test pipeline generation: berapa banyak concurrent template generation yang FFmpeg container bisa handle sebelum stitching mulai antre/timeout
+- [ ] Idempotency key tambahan di webhook payment — pertahanan berlapis di atas signature verification (kalau Midtrans retry notification yang sama, jangan tambah kredit dobel — cek `handleMidtransNotification` sudah ada guard "already processed", tapi perlu dites dengan concurrent request, bukan cuma sequential)
+- [ ] Backup & disaster recovery plan untuk Postgres (Supabase) — jadwal backup, prosedur restore, RTO/RPO yang jelas
+- [ ] Cost monitoring per generation — hitung biaya aktual (provider AI + storage + compute) vs `creditsCost` yang di-charge, pastikan margin benar-benar positif bukan cuma di atas kertas formula
+- [ ] Dependency scanning terjadwal (Trivy sudah ada di CI untuk image Docker — tambahkan juga `pnpm audit`/Dependabot untuk npm packages)
+
+**Gerbang lulus Tier A+**: minimal 1 minggu berjalan di production dengan dashboard observability aktif, tanpa insiden kredit hilang/dobel, load test membuktikan sistem tidak jebol di beban wajar (misal 50 concurrent template generation).
+
+---
+
+### 🏅 Tier S — "Best-in-class, siap skala besar/enterprise"
+
+**Definisi**: bukan cuma "tidak rusak", tapi terbukti tangguh di kondisi ekstrem, teraudit pihak luar, dan siap dipercaya customer enterprise atau volume traffic besar.
+
+**1️⃣ Web / Frontend / UI-UX**
+
+- [ ] Design system terdokumentasi penuh (Storybook) + visual regression testing
+- [ ] Localization readiness (kalau ekspansi luar Indonesia)
+- [ ] Advanced UX: real-time collaborative editing di template, offline-friendly draft
+
+**2️⃣ API / Backend**
+
+- [ ] Formal security audit / penetration test pihak ketiga (bukan cuma self-review seperti yang kita lakukan sejauh ini)
+- [ ] Chaos engineering: simulasi provider AI down bersamaan (Seedance+Kling+Wan sekaligus), simulasi Postgres/Redis down — pastikan sistem degrade dengan baik, bukan crash total
+- [ ] Multi-region deployment / auto-scaling untuk `apps/api` container
+- [ ] SLA-level uptime monitoring (target 99.9%+) dengan on-call/incident response process
+- [ ] Compliance readiness (SOC2-style) kalau target customer enterprise/B2B
+
+**Gerbang lulus Tier S**: hasil pen-test tidak ada temuan kritis/tinggi, chaos test membuktikan sistem tetap available saat 1+ komponen gagal, ada bukti SLA terpenuhi selama minimal 1 kuartal.
+
+---
+
+### Kenapa urutannya begini (bukan lompat langsung ke S)
+
+Setiap tier di atas dibangun di atas tier sebelumnya — Tier A+ dan S percuma dikerjakan kalau Tier A belum tuntas, karena fondasinya (test e2e, CI penuh, tidak ada kode orphaned) itu yang bikin observability/load-test/security-audit di tier atas punya arti. Contoh konkret: percuma pasang dashboard observability canggih (Tier A+) kalau webhook masih bisa dites cuma manual tanpa CI (Tier A) — begitu ada regresi, dashboard-nya baru ketahuan setelah user sudah dirugikan, bukan sebelum merge.
 
 ### Removed dari Roadmap
 
