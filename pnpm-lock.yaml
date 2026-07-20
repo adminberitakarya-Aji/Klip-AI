@@ -239,7 +239,7 @@ importers:
         specifier: ^0.378.0
         version: 0.378.0(react@19.0.0)
       next:
-        specifier: ^15.0.0
+        specifier: 15.5.20
         version: 15.5.20(@babel/core@7.29.7)(@opentelemetry/api@1.9.1)(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       next-auth:
         specifier: ^5.0.0-beta.18
