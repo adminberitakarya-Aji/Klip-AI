@@ -19,5 +19,10 @@
     }
   },
   "include": ["src/**/*", "prisma/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "prisma/seed-credits.ts",
+    "prisma/seed-templates.ts"
+  ]
 }
