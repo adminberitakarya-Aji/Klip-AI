@@ -35,11 +35,15 @@ RUN npm install -g pnpm@9
 
 WORKDIR /app
 
+# Accept DATABASE_URL as build arg (for prisma generate)
+ARG DATABASE_URL
+ENV DATABASE_URL=${DATABASE_URL}
+
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
+# Generate Prisma Client (uses --schema to avoid .env lookup issues)
 RUN pnpm --filter @klipai/db db:generate
 
 # Build Next.js application

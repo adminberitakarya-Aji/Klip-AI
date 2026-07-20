@@ -7,6 +7,8 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/klipai?schema=public"
     container_name: klip-ai-api
     restart: unless-stopped
     ports:
