@@ -76,7 +76,7 @@
 10. **[✅ DONE] Hitung `creditsCost` per template pakai `pricing.ts`** — DONE (2026-07-20). Fungsi `calculateCreditsFromShots()` sudah diimplementasi di route `POST /api/templates` dan `PATCH /api/templates/[slug]`. CreditsCost sekarang auto-calculated dari shots (generation type + resolution). Tidak perlu input manual dari admin.
 11. **[✅ DONE] Supabase setup**: Run migrations + seed di Supabase — DONE (user)
 12. **[✅ DONE] Production testing**: End-to-end testing selesai — DONE (2026-07-20)
-13. **[Next] UI Components**: Credit packages display, purchase flow, balance display
+13. **[✅ DONE] UI Components**: Credit packages display, purchase flow, balance display — DONE (2026-07-20). Komponen UI sudah dibuat di `apps/web/src/components/credits/`: CreditPackages.tsx, CreditBalance.tsx, CreditPurchase.tsx.
 14. **[Next] Midtrans Configuration**: Set MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION di environment
 15. **[P3] Roadmap ekspansi**: Visual Prompt Builder, Team Workspace, Public API/SDK (removed: billing/subscription, replaced with Pay-Per-Use credits)
 
