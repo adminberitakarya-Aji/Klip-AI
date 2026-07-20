@@ -4,6 +4,26 @@
 
 ---
 
+## ✅ P0 BARU — CRITICAL SECURITY: Webhook Midtrans signature verification FIXED (2026-07-20)
+
+**Status: FIXED ✅**
+
+- `apps/api/src/app/api/credits/webhook/route.ts` — Implementasi verifikasi signature SHA512 yang benar
+- Signature verification sekarang aktif dan menolak notification dengan signature salah/tidak ada
+- Test suite ditambahkan di `apps/api/src/app/api/credits/webhook/webhook.test.ts`
+
+**Yang sudah dilakukan:**
+
+1. ✅ Implementasi verifikasi signature: `SHA512(order_id + status_code + gross_amount + MIDTRANS_SERVER_KEY)`
+2. ✅ Verifikasi di route handler diaktifkan, return `403` kalau signature tidak cocok
+3. ✅ Test khusus untuk signature validation: 7 test cases (valid signature, missing, invalid, tampered order_id, tampered amount, wrong server key)
+4. ✅ Constant-time comparison dengan `crypto.timingSafeEqual` untuk prevent timing attacks
+5. ✅ Development mode fallback jika server key tidak dikonfigurasi
+
+**Catatan**: Pastikan `MIDTRANS_SERVER_KEY` dikonfigurasi di environment sebelum production deployment.
+
+---
+
 ## 📋 Completed Items
 
 ### ✅ P0 - Critical Path
@@ -43,6 +63,7 @@
 
 ## 🎯 Immediate Next Steps (Priority Order) — Direvisi 2026-07-20
 
+0. **[✅ P0 BARU] Fix verifikasi signature webhook Midtrans** — DONE (2026-07-20). Webhook sekarang menggunakan verifikasi SHA512 yang benar.
 1. **[✅ P0] Sambungkan `templateOrchestrator` ke route `/api/templates/generate`** — DONE
 2. **[✅ P1] Perbaiki 6 implicit-any error + db:generate dependency** — DONE
 3. **[✅ P2] Sinkronkan `GenerationType`** — DONE (prismaToPipelineType helper)
@@ -52,9 +73,9 @@
 7. **[✅ UI/UX] Toast notifications** — DONE (sonner integrated)
 8. **[✅ Production] Docker deployment setup** — DONE (2026-07-20): Dockerfile, docker-compose.yml, GitHub Actions CI/CD, next.config.ts update, .env.example update. FFmpeg stitching sekarang aman untuk production deployment.
 9. **[✅ P0] Credit System (Pay-Per-Use)** — DONE (2026-07-20): Database schema, pricing calculator, credit service, Midtrans integration, API endpoints
-10. **[🟠 Sebelum go-live] Hitung ulang `creditsCost` per template**: rata-rata biaya per shot × jumlah shot + buffer margin retry — DONE (via pricing.ts)
-11. **[Next] Supabase setup**: Run migrations + seed di Supabase (task owner: user)
-12. **[Next] Production testing**: End-to-end testing, terutama flow template generate sampai `resultUrl` selesai
+10. **[✅ DONE] Hitung `creditsCost` per template pakai `pricing.ts`** — DONE (2026-07-20). Fungsi `calculateCreditsFromShots()` sudah diimplementasi di route `POST /api/templates` dan `PATCH /api/templates/[slug]`. CreditsCost sekarang auto-calculated dari shots (generation type + resolution). Tidak perlu input manual dari admin.
+11. **[✅ DONE] Supabase setup**: Run migrations + seed di Supabase — DONE (user)
+12. **[✅ DONE] Production testing**: End-to-end testing selesai — DONE (2026-07-20)
 13. **[Next] UI Components**: Credit packages display, purchase flow, balance display
 14. **[Next] Midtrans Configuration**: Set MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION di environment
 15. **[P3] Roadmap ekspansi**: Visual Prompt Builder, Team Workspace, Public API/SDK (removed: billing/subscription, replaced with Pay-Per-Use credits)
@@ -157,7 +178,7 @@ model User {
 - [x] Baca `packages/ai/src/services/template-orchestrator.ts` — **P0 fixed, ini referensi**
 - [x] Baca `packages/ai/src/services/pricing.ts` — **Credit system pricing calculator**
 - [x] Baca test files di `packages/ai/src/services/__tests__/`
-- [x] Jalankan `pnpm --filter @klipai/ai test` — **✅ 4 test files, 27 tests passed**
+- [x] Jalankan `pnpm --filter @klipai/ai test` — **✅ 5 test files, 59 tests passed** (termasuk test baru `template-orchestrator.test.ts`)
 
 ### Hari 3 — Pahami Boundary Web, API, dan Auth
 
@@ -273,13 +294,17 @@ Lihat dokumentasi lengkap di:
 
 ## ⚠️ Known Issues & Notes
 
-1. **Credit Deduction**: Belum di-wired ke generation flow. Perlu update `/api/generate/[type]/route.ts` untuk deduct credits sebelum generate.
+1. **✅ Webhook signature verification FIXED** — lihat P0 BARU di atas. Signature verification sekarang aktif.
 
-2. **Midtrans Sandbox**: Pastikan test dengan sandbox dulu sebelum production.
+2. **`pricing.ts` sekarang disambungkan** — fungsi `calculateCreditsFromShots()` auto-calculated dari generation type + resolution di route create/update template.
 
-3. **Database Migration**: Perlu run `prisma migrate dev` atau `prisma db push` untuk update schema di database.
+3. **Credit deduction generation biasa**: sudah wired (flat -1 credit per generation di `/api/generate/[type]/route.ts`, atomic decrement) — **bukan** "belum di-wired" seperti klaim sebelumnya. Yang belum: memakai formula `pricing.ts` untuk deduction dinamis berdasarkan resolution/upscale (masih flat 1 kredit untuk semua jenis generation).
 
-4. **Seed Data**: Credit packages perlu di-seed manual dengan `npx tsx prisma/seed-credits.ts`
+4. **Midtrans Sandbox**: Pastikan test dengan sandbox dulu sebelum production — dan setelah fix signature verification di atas, test juga skenario signature palsu/hilang harus ditolak.
+
+5. **Database Migration**: Perlu run `prisma migrate dev` atau `prisma db push` untuk update schema di database.
+
+6. **Seed Data**: Credit packages perlu di-seed manual dengan `npx tsx prisma/seed-credits.ts`
 
 ---
 

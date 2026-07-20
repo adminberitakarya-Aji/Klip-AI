@@ -29,9 +29,7 @@ type NextAuthReturn = {
     GET: (req: Request) => Promise<Response>;
     POST: (req: Request) => Promise<Response>;
   };
-  auth: (
-    req?: Request,
-  ) => Promise<{
+  auth: (req?: Request) => Promise<{
     user?: {
       id?: string;
       email?: string | null;
@@ -103,8 +101,8 @@ export const authOptions: NextAuthConfig = {
           name: user.name,
           image: user.image,
           role: user.role,
-          subscription: user.subscription,
-        };
+          credits: user.credits,
+        } as any;
       },
     }),
   ],
@@ -113,7 +111,7 @@ export const authOptions: NextAuthConfig = {
       if (user) {
         token.id = (user as any).id ?? "";
         token.role = (user as any).role ?? "";
-        token.subscription = (user as any).subscription ?? "";
+        token.credits = (user as any).credits ?? 0;
       }
       return token;
     },
@@ -121,7 +119,7 @@ export const authOptions: NextAuthConfig = {
       if (session.user) {
         (session.user as any).id = token.id;
         (session.user as any).role = token.role;
-        (session.user as any).subscription = token.subscription;
+        (session.user as any).credits = token.credits;
       }
       return session;
     },

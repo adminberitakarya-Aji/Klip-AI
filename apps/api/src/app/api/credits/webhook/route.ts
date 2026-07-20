@@ -2,11 +2,14 @@
  * POST /api/credits/webhook
  * Midtrans payment notification webhook
  *
- * IMPORTANT: This endpoint should be protected and only accessible by Midtrans
+ * IMPORTANT: This endpoint is protected by signature verification
+ * to prevent fake webhook submissions that could grant free credits.
+ * See: https://docs.midtrans.com/after-payment/http-notification
  */
 
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import crypto from "crypto";
 import {
   handleMidtransNotification,
   type MidtransNotification,
@@ -17,25 +20,57 @@ const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
 
 /**
  * Verify Midtrans notification signature
+ *
+ * IMPORTANT: Midtrans uses SHA512 hash to verify webhook authenticity.
+ * The signature_key is calculated as:
+ * SHA512(order_id + status_code + gross_amount + server_key)
+ *
+ * This prevents attackers from sending fake webhook notifications
+ * to grant themselves free credits.
  */
-function verifySignature(
-  notification: MidtransNotification,
-  clientKey: string,
-): boolean {
-  // Midtrans signature is calculated from order_id + status_code + gross_amount + merchant_key
-  // For Snap transactions, the signature is validated differently
-  // See: https://docs.midtrans.com/after-payment/http-notification
-
+function verifySignature(notification: MidtransNotification): boolean {
+  // Reject if no signature provided - this is required for security
   if (!notification.signature_key) {
-    return true; // Allow if no signature (for testing)
+    console.warn("Midtrans webhook missing signature_key");
+    return false;
   }
 
-  // Simple verification - in production, implement proper signature verification
-  // See: https://docs.midtrans.com/en/technical-reference/signature-hash
-  const input = `${notification.order_id}${notification.status_code}${notification.gross_amount}${MIDTRANS_SERVER_KEY}`;
+  // Check if server key is configured
+  if (!MIDTRANS_SERVER_KEY) {
+    console.error(
+      "MIDTRANS_SERVER_KEY not configured - cannot verify signature",
+    );
+    // In development without server key, we might want to be lenient
+    // but in production this should never happen
+    if (process.env.NODE_ENV === "development") {
+      console.warn("DEV MODE: Skipping signature verification");
+      return true;
+    }
+    return false;
+  }
 
-  // For now, trust notifications that have a signature key
-  return true;
+  // Calculate expected signature
+  // Format: SHA512(order_id + status_code + gross_amount + server_key)
+  const input = `${notification.order_id}${notification.status_code}${notification.gross_amount}${MIDTRANS_SERVER_KEY}`;
+  const expectedSignature = crypto
+    .createHash("sha512")
+    .update(input)
+    .digest("hex");
+
+  // Constant-time comparison to prevent timing attacks
+  const providedSignature = notification.signature_key;
+  const isValid = crypto.timingSafeEqual(
+    Buffer.from(expectedSignature),
+    Buffer.from(providedSignature),
+  );
+
+  if (!isValid) {
+    console.warn(`Invalid Midtrans signature for ${notification.order_id}`);
+    console.warn(`Expected: ${expectedSignature}`);
+    console.warn(`Got: ${providedSignature}`);
+  }
+
+  return isValid;
 }
 
 export async function POST(request: NextRequest) {
@@ -48,14 +83,20 @@ export async function POST(request: NextRequest) {
       JSON.stringify(notification, null, 2),
     );
 
-    // Verify signature (optional but recommended)
-    // if (!verifySignature(notification, MIDTRANS_SERVER_KEY)) {
-    //   console.warn("Invalid Midtrans signature");
-    //   return NextResponse.json(
-    //     { success: false, error: "Invalid signature" },
-    //     { status: 403 }
-    //   );
-    // }
+    // CRITICAL: Verify signature to prevent fake webhook attacks
+    // This protects against users creating fake settlement notifications
+    // to get free credits without paying
+    if (!verifySignature(notification)) {
+      console.warn(
+        `Rejected webhook for ${notification.order_id}: Invalid signature`,
+      );
+      return NextResponse.json(
+        { success: false, error: "Invalid signature" },
+        { status: 403 },
+      );
+    }
+
+    console.log(`Signature verified for order: ${notification.order_id}`);
 
     // Handle the notification
     const result = await handleMidtransNotification(notification);

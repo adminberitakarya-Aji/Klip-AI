@@ -4,9 +4,60 @@ import { prisma } from "@klipai/db/client";
 import {
   updateTemplateSchema,
   type UpdateTemplateInput,
+  type TemplateShot,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";
+
+/**
+ * Calculate total credits cost from template shots
+ * Uses pricing formula from @klipai/ai pricing.ts
+ */
+function calculateCreditsFromShots(shots: TemplateShot[]): number {
+  const GenerationType = {
+    TEXT_TO_VIDEO: "text-to-video",
+    IMAGE_TO_VIDEO: "image-to-video",
+    VIDEO_TO_VIDEO: "video-to-video",
+    TEXT_TO_IMAGE: "text-to-image",
+    IMAGE_TO_IMAGE: "image-to-image",
+    MOTION_CONTROL: "motion-control",
+  } as const;
+
+  const PROVIDER_MULTIPLIERS: Record<string, number> = {
+    "text-to-video": 1.0,
+    "image-to-video": 1.2,
+    "video-to-video": 1.5,
+    "text-to-image": 0.5,
+    "image-to-image": 0.6,
+    "motion-control": 1.1,
+  };
+
+  const RESOLUTION_MULTIPLIERS: Record<string, number> = {
+    "720p": 1.0,
+    "1080p": 1.5,
+    "4k": 2.5,
+  };
+
+  const BASE_COST_PER_SHOT = 1;
+  const RETRY_BUFFER_PERCENTAGE = 0.2;
+
+  let totalCredits = 0;
+
+  for (const shot of shots) {
+    const genTypeString =
+      GenerationType[shot.generationType as keyof typeof GenerationType] ||
+      "text-to-video";
+    const generationMultiplier = PROVIDER_MULTIPLIERS[genTypeString] || 1.0;
+    const resolutionMultiplier = RESOLUTION_MULTIPLIERS[shot.resolution] || 1.0;
+    const perShotCost =
+      BASE_COST_PER_SHOT * generationMultiplier * resolutionMultiplier;
+    const baseCost = Math.ceil(perShotCost);
+    const retryBuffer = Math.ceil(baseCost * RETRY_BUFFER_PERCENTAGE);
+    totalCredits += baseCost + retryBuffer;
+  }
+
+  return Math.max(1, totalCredits);
+}
 
 // Helper: require admin
 async function requireAdmin(request: NextRequest) {
@@ -154,6 +205,14 @@ export async function PATCH(
       }
     }
 
+    // Calculate credits cost from shots if shots are provided
+    let calculatedCreditsCost: number | undefined;
+    if (input.shots && Array.isArray(input.shots)) {
+      calculatedCreditsCost = calculateCreditsFromShots(
+        input.shots as TemplateShot[],
+      );
+    }
+
     // Update template
     const updated = await prisma.storyboardTemplate.update({
       where: { slug },
@@ -172,7 +231,8 @@ export async function PATCH(
         referenceStyleUrl: input.referenceStyleUrl,
         referenceStyleType: input.referenceStyleType,
         brandKitSlots: input.brandKitSlots,
-        creditsCost: input.creditsCost,
+        // Use auto-calculated credits if shots provided, otherwise use input or keep existing
+        creditsCost: calculatedCreditsCost ?? input.creditsCost ?? undefined,
         isPublished: input.isPublished ?? undefined,
         isOfficial: isAdmin ? input.isOfficial : undefined, // Only admin can change isOfficial
         version: input.version ? { increment: 1 } : undefined,
