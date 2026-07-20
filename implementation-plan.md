@@ -75,10 +75,8 @@
 9. **[✅ P0] Credit System (Pay-Per-Use)** — DONE (2026-07-20): Database schema, pricing calculator, credit service, Midtrans integration, API endpoints
 10. **[✅ DONE] Hitung `creditsCost` per template pakai `pricing.ts`** — DONE (2026-07-20). Fungsi `calculateCreditsFromShots()` sudah diimplementasi di route `POST /api/templates` dan `PATCH /api/templates/[slug]`. CreditsCost sekarang auto-calculated dari shots (generation type + resolution). Tidak perlu input manual dari admin.
 11. **[✅ DONE] Supabase setup**: Run migrations + seed di Supabase — DONE (user)
-12. **[✅ DONE] Production testing**: End-to-end testing selesai — DONE (2026-07-20)
-13. **[✅ DONE] UI Components**: Credit packages display, purchase flow, balance display — DONE (2026-07-20). Komponen UI sudah dibuat di `apps/web/src/components/credits/`: CreditPackages.tsx, CreditBalance.tsx, CreditPurchase.tsx.
-14. **[Next] Midtrans Configuration**: Set MIDTRANS_SERVER_KEY, MIDTRANS_CLIENT_KEY, MIDTRANS_IS_PRODUCTION di environment
-15. **[P3] Roadmap ekspansi**: Visual Prompt Builder, Team Workspace, Public API/SDK (removed: billing/subscription, replaced with Pay-Per-Use credits)
+12. **[⚠️ Perlu verifikasi ulang] Production testing**: ditandai "selesai" sebelumnya, tapi tidak ada file/artifact test e2e ditemukan di repo (`find . -iname "*e2e*"` kosong) — kemungkinan testing manual belum didokumentasikan sebagai test otomatis. Lihat item near-term di Roadmap API/Backend di bawah.
+13. Lihat **🗺 Roadmap (dibagi Web/Frontend dan API/Backend)** di bawah untuk daftar lengkap next steps, termasuk UI credit system dan konfigurasi Midtrans.
 
 ---
 
@@ -265,30 +263,49 @@ Lihat dokumentasi lengkap di:
 
 ---
 
-## 🚀 Roadmap (P3 - Future)
+## 🗺 Roadmap (Dibagi 2: Web/Frontend dan API/Backend) — 2026-07-20
 
-### Visual & UX
+> Dipisah supaya jelas siapa/tim mana yang kerjakan apa. Tiap bagian ada 2 lapis: **Near-term** (perlu sebelum atau segera setelah launch) dan **Future** (P3, ekspansi jangka panjang).
+
+### 1️⃣ Web / Frontend / UI-UX
+
+**Near-term — sebelum launch credit system ke user real**
+
+- [ ] UI credit packages: display paket (Starter/Pro/Business), tombol beli
+- [ ] Flow purchase: integrasi Midtrans Snap di client (`snapToken` dari `POST /api/credits/purchase`)
+- [ ] Halaman balance kredit di dashboard user
+- [ ] Halaman callback Midtrans: `/credits/success`, `/credits/error`, `/credits/pending` (URL-nya sudah didefinisikan di `midtrans.ts`, tapi belum dicek apakah halamannya sudah ada di `apps/web`)
+- [ ] Riwayat transaksi kredit (pakai `GET /api/credits/history` yang sudah ada)
+
+**Future (P3)**
 
 - [ ] Visual Prompt Builder (drag-drop interface)
-- [ ] Timeline editor for video preview
+- [ ] Timeline editor untuk preview video
 - [ ] Custom watermark settings
+- [ ] Team workspace UI (kalau kolaborasi tim jadi prioritas)
+- [ ] Shared templates UI
 
-### Collaboration
+### 2️⃣ API / Backend
 
-- [ ] Team workspace
-- [ ] Shared templates
-- [ ] Team billing
+**Near-term — sebelum production**
 
-### Developer
+- [ ] Tambahkan `"test": "vitest run"` ke `apps/api/package.json` — test webhook Midtrans (8 test, sudah lulus manual) **belum jalan otomatis di CI** karena tidak ada script `test`
+- [ ] Rapikan duplikasi formula pricing — saat ini ada **3 salinan** logic yang sama (`packages/ai/src/services/pricing.ts`, `apps/api/.../templates/route.ts`, `apps/api/.../templates/[slug]/route.ts`). 2 salinan di route API lebih sederhana dari aslinya (hilang `upscaleMultiplier` dan 4 tipe generation lanjutan) — sebaiknya kedua route import langsung dari `pricing.ts` supaya tidak drift
+- [ ] Fix 3 implicit-any baru di `apps/api/src/lib/credits.ts` (parameter `tx` di `prisma.$transaction`)
+- [ ] Set `MIDTRANS_SERVER_KEY`, `MIDTRANS_CLIENT_KEY`, `MIDTRANS_IS_PRODUCTION` di environment production (Docker/Railway/Render secrets)
+- [ ] End-to-end test asli untuk flow generate (template → orchestrator → resultUrl) dan flow payment (purchase → webhook → credit bertambah) — belum ada file test e2e di repo
+
+**Future (P3)**
 
 - [ ] Public API
 - [ ] SDK (JS, Python)
-- [ ] Webhook events
+- [ ] Webhook events (buat integrasi pihak ketiga, beda dari webhook Midtrans yang sudah ada)
+- [ ] Team billing (backend)
 
-### Removed from P3
+### Removed dari Roadmap
 
-- ~~Billing & Subscription (Stripe)~~ → **Replaced with Pay-Per-Use Credits**
-- ~~Export & Distribution~~ → Future consideration
+- ~~Billing & Subscription (Stripe)~~ → **Diganti Pay-Per-Use Credits (Midtrans)**
+- ~~Export & Distribution~~ → Future consideration, belum diprioritaskan
 
 ---
 
@@ -296,7 +313,7 @@ Lihat dokumentasi lengkap di:
 
 1. **✅ Webhook signature verification FIXED** — lihat P0 BARU di atas. Signature verification sekarang aktif.
 
-2. **`pricing.ts` sekarang disambungkan** — fungsi `calculateCreditsFromShots()` auto-calculated dari generation type + resolution di route create/update template.
+2. **`pricing.ts` sekarang disambungkan, tapi terduplikasi 3x** — fungsi `calculateCreditsFromShots()` auto-calculated dari generation type + resolution di route create/update template, sudah aktif. Tapi logic-nya di-copy-paste ke 2 route API alih-alih import dari `packages/ai/src/services/pricing.ts` — lihat item di Roadmap API/Backend.
 
 3. **Credit deduction generation biasa**: sudah wired (flat -1 credit per generation di `/api/generate/[type]/route.ts`, atomic decrement) — **bukan** "belum di-wired" seperti klaim sebelumnya. Yang belum: memakai formula `pricing.ts` untuk deduction dinamis berdasarkan resolution/upscale (masih flat 1 kredit untuk semua jenis generation).
 
