@@ -9,7 +9,12 @@
  * - Transaction logging
  */
 
-import { prisma, CreditTransactionType, PaymentStatus } from "@klipai/db";
+import {
+  prisma,
+  CreditTransactionType,
+  PaymentStatus,
+  type Prisma,
+} from "@klipai/db";
 import { FREE_CREDITS_AMOUNT } from "@klipai/ai/pricing";
 
 export interface CreditCheckResult {
@@ -72,49 +77,51 @@ export async function deductCredits(
 ): Promise<CreditDeductionResult> {
   try {
     // Use transaction to ensure atomic operation
-    const result = await prisma.$transaction(async (tx) => {
-      // Lock the user row for update
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        select: { credits: true },
-      });
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Lock the user row for update
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: { credits: true },
+        });
 
-      if (!user) {
-        throw new Error("User not found");
-      }
+        if (!user) {
+          throw new Error("User not found");
+        }
 
-      if (user.credits < amount) {
-        throw new Error(
-          `Insufficient credits. Required: ${amount}, Available: ${user.credits}`,
-        );
-      }
+        if (user.credits < amount) {
+          throw new Error(
+            `Insufficient credits. Required: ${amount}, Available: ${user.credits}`,
+          );
+        }
 
-      // Deduct from balance
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: {
-          credits: user.credits - amount,
-        },
-        select: { credits: true },
-      });
+        // Deduct from balance
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            credits: user.credits - amount,
+          },
+          select: { credits: true },
+        });
 
-      // Create transaction record
-      const transaction = await tx.creditTransaction.create({
-        data: {
-          userId,
-          amount: -amount, // Negative for deduction
-          type,
-          description,
-          paymentStatus: PaymentStatus.COMPLETED,
-          metadata: (metadata as object) || undefined,
-        },
-      });
+        // Create transaction record
+        const transaction = await tx.creditTransaction.create({
+          data: {
+            userId,
+            amount: -amount, // Negative for deduction
+            type,
+            description,
+            paymentStatus: PaymentStatus.COMPLETED,
+            metadata: (metadata as object) || undefined,
+          },
+        });
 
-      return {
-        newBalance: updatedUser.credits,
-        transactionId: transaction.id,
-      };
-    });
+        return {
+          newBalance: updatedUser.credits,
+          transactionId: transaction.id,
+        };
+      },
+    );
 
     return {
       success: true,
@@ -141,39 +148,41 @@ export async function refundCredits(
   reason: string,
 ): Promise<CreditDeductionResult> {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Add to balance
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: {
-          credits: {
-            increment: amount,
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Add to balance
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            credits: {
+              increment: amount,
+            },
           },
-        },
-        select: { credits: true },
-      });
+          select: { credits: true },
+        });
 
-      // Create refund transaction record
-      const transaction = await tx.creditTransaction.create({
-        data: {
-          userId,
-          amount: amount, // Positive for refund
-          type: CreditTransactionType.REFUND,
-          description: `Refund: ${reason}`,
-          paymentStatus: PaymentStatus.COMPLETED,
-          metadata: {
-            originalTransactionId,
-            reason,
-            refundedAt: new Date().toISOString(),
+        // Create refund transaction record
+        const transaction = await tx.creditTransaction.create({
+          data: {
+            userId,
+            amount: amount, // Positive for refund
+            type: CreditTransactionType.REFUND,
+            description: `Refund: ${reason}`,
+            paymentStatus: PaymentStatus.COMPLETED,
+            metadata: {
+              originalTransactionId,
+              reason,
+              refundedAt: new Date().toISOString(),
+            },
           },
-        },
-      });
+        });
 
-      return {
-        newBalance: updatedUser.credits,
-        transactionId: transaction.id,
-      };
-    });
+        return {
+          newBalance: updatedUser.credits,
+          transactionId: transaction.id,
+        };
+      },
+    );
 
     return {
       success: true,
@@ -202,36 +211,38 @@ export async function addCredits(
   metadata?: Record<string, unknown>,
 ): Promise<CreditDeductionResult> {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      // Add to balance
-      const updatedUser = await tx.user.update({
-        where: { id: userId },
-        data: {
-          credits: {
-            increment: amount,
+    const result = await prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Add to balance
+        const updatedUser = await tx.user.update({
+          where: { id: userId },
+          data: {
+            credits: {
+              increment: amount,
+            },
           },
-        },
-        select: { credits: true },
-      });
+          select: { credits: true },
+        });
 
-      // Create transaction record
-      const transaction = await tx.creditTransaction.create({
-        data: {
-          userId,
-          packageId: packageId || null,
-          amount: amount, // Positive for addition
-          type,
-          description,
-          paymentStatus: PaymentStatus.COMPLETED,
-          metadata: (metadata as object) || undefined,
-        },
-      });
+        // Create transaction record
+        const transaction = await tx.creditTransaction.create({
+          data: {
+            userId,
+            packageId: packageId || null,
+            amount: amount, // Positive for addition
+            type,
+            description,
+            paymentStatus: PaymentStatus.COMPLETED,
+            metadata: (metadata as object) || undefined,
+          },
+        });
 
-      return {
-        newBalance: updatedUser.credits,
-        transactionId: transaction.id,
-      };
-    });
+        return {
+          newBalance: updatedUser.credits,
+          transactionId: transaction.id,
+        };
+      },
+    );
 
     return {
       success: true,

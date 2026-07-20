@@ -6,65 +6,10 @@ import {
   templateQuerySchema,
   type CreateTemplateInput,
   type TemplateQuery,
-  type TemplateShot,
 } from "@klipai/core/schemas/template";
+import { calculateCreditsFromShots } from "@klipai/ai/pricing";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";
-
-/**
- * Calculate total credits cost from template shots
- * Uses pricing formula from @klipai/ai pricing.ts
- */
-function calculateCreditsFromShots(shots: TemplateShot[]): number {
-  const GenerationType = {
-    TEXT_TO_VIDEO: "text-to-video",
-    IMAGE_TO_VIDEO: "image-to-video",
-    VIDEO_TO_VIDEO: "video-to-video",
-    TEXT_TO_IMAGE: "text-to-image",
-    IMAGE_TO_IMAGE: "image-to-image",
-    MOTION_CONTROL: "motion-control",
-  } as const;
-
-  // Provider multipliers (relative to base)
-  const PROVIDER_MULTIPLIERS: Record<string, number> = {
-    "text-to-video": 1.0,
-    "image-to-video": 1.2,
-    "video-to-video": 1.5,
-    "text-to-image": 0.5,
-    "image-to-image": 0.6,
-    "motion-control": 1.1,
-  };
-
-  // Resolution multipliers
-  const RESOLUTION_MULTIPLIERS: Record<string, number> = {
-    "720p": 1.0,
-    "1080p": 1.5,
-    "4k": 2.5,
-  };
-
-  const BASE_COST_PER_SHOT = 1;
-  const RETRY_BUFFER_PERCENTAGE = 0.2;
-
-  let totalCredits = 0;
-
-  for (const shot of shots) {
-    // Normalize generation type to lowercase string
-    const genTypeString =
-      GenerationType[shot.generationType as keyof typeof GenerationType] ||
-      "text-to-video";
-
-    const generationMultiplier = PROVIDER_MULTIPLIERS[genTypeString] || 1.0;
-    const resolutionMultiplier = RESOLUTION_MULTIPLIERS[shot.resolution] || 1.0;
-
-    const perShotCost =
-      BASE_COST_PER_SHOT * generationMultiplier * resolutionMultiplier;
-    const baseCost = Math.ceil(perShotCost);
-    const retryBuffer = Math.ceil(baseCost * RETRY_BUFFER_PERCENTAGE);
-    totalCredits += baseCost + retryBuffer;
-  }
-
-  return Math.max(1, totalCredits); // Minimum 1 credit
-}
 
 // GET /api/templates - List templates with filters
 export async function GET(request: NextRequest) {
@@ -232,11 +177,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate credits cost from shots (auto-calculate)
+    // Calculate credits cost from shots (auto-calculate using shared pricing)
     const calculatedCreditsCost = calculateCreditsFromShots(input.shots);
 
     // Create template with shots in transaction
-    const template = await prisma.$transaction(async (tx: any) => {
+    const template = await prisma.$transaction(async (tx) => {
       const created = await tx.storyboardTemplate.create({
         data: {
           name: input.name,

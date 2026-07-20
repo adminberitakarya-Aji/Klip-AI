@@ -4,16 +4,22 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Coins,
-  Loader2,
   Check,
   CreditCard,
   Smartphone,
   Building2,
   ArrowLeft,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@klipai/ui/components/button";
 import { Card } from "@klipai/ui/components/card";
 import { cn } from "@klipai/ui/lib/utils";
+import {
+  ErrorState,
+  CardsLoadingSkeleton,
+  CardLoadingSkeleton,
+} from "@klipai/ui/components/state-components";
 
 interface CreditPackage {
   id: string;
@@ -27,13 +33,6 @@ interface CreditPackage {
 }
 
 type PurchaseStep = "select" | "payment" | "processing" | "success" | "error";
-
-interface PurchaseState {
-  step: PurchaseStep;
-  selectedPackage: CreditPackage | null;
-  snapToken: string | null;
-  error: string | null;
-}
 
 // Extend Window type for Midtrans Snap
 declare global {
@@ -63,6 +62,7 @@ export function CreditPurchase() {
     error: null,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch packages on mount
   useEffect(() => {
@@ -75,11 +75,7 @@ export function CreditPurchase() {
           setPackages(data.data.filter((pkg: CreditPackage) => pkg.isActive));
         }
       } catch (err) {
-        setState((prev) => ({
-          ...prev,
-          step: "error",
-          error: err instanceof Error ? err.message : "Unknown error",
-        }));
+        setError(err instanceof Error ? err.message : "Unknown error");
       } finally {
         setLoading(false);
       }
@@ -178,6 +174,25 @@ export function CreditPurchase() {
     });
   };
 
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    // Re-fetch packages
+    fetch("/api/credits/packages")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setPackages(data.data.filter((pkg: CreditPackage) => pkg.isActive));
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Unknown error");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
       style: "currency",
@@ -187,23 +202,48 @@ export function CreditPurchase() {
     }).format(price);
   };
 
+  // Loading state for packages
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+      <div className="space-y-6">
+        <div className="text-center mb-8">
+          <div className="w-48 h-8 bg-neutral-800 rounded animate-pulse mx-auto mb-2" />
+          <div className="w-64 h-4 bg-neutral-800 rounded animate-pulse mx-auto" />
+        </div>
+        <CardsLoadingSkeleton count={4} />
       </div>
     );
   }
 
-  if (state.step === "error") {
+  // Error state with retry
+  if (error) {
     return (
-      <Card className="p-8 text-center bg-neutral-900/50 border-neutral-800">
-        <div className="text-red-400 mb-4">{state.error}</div>
-        <Button onClick={handleBack}>Kembali</Button>
-      </Card>
+      <div className="max-w-2xl mx-auto">
+        <ErrorState
+          title="Gagal Memuat Paket"
+          message={error}
+          onRetry={handleRetry}
+        />
+      </div>
     );
   }
 
+  // Payment error state
+  if (state.step === "error") {
+    return (
+      <div className="max-w-md mx-auto">
+        <ErrorState
+          title="Pembayaran Gagal"
+          message={state.error || "Terjadi kesalahan saat memproses pembayaran"}
+          onRetry={() => {
+            setState((prev) => ({ ...prev, step: "payment", error: null }));
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Success state
   if (state.step === "success") {
     return (
       <Card className="p-8 text-center bg-neutral-900/50 border-green-500/30">
@@ -228,6 +268,22 @@ export function CreditPurchase() {
     );
   }
 
+  // Processing state
+  if (state.step === "processing") {
+    return (
+      <Card className="p-12 text-center bg-neutral-900/50 border-neutral-800">
+        <Loader2 className="h-12 w-12 animate-spin text-purple-500 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-white mb-2">
+          Memproses Pembayaran...
+        </h3>
+        <p className="text-neutral-400">
+          Mohon tunggu, Anda akan diarahkan ke halaman pembayaran Midtrans.
+        </p>
+      </Card>
+    );
+  }
+
+  // Payment confirmation state
   if (state.step === "payment" && state.selectedPackage) {
     return (
       <Card className="p-6 bg-neutral-900/50 border-purple-500/30">
@@ -390,3 +446,11 @@ function PaymentMethodButton({
 }
 
 export default CreditPurchase;
+
+// Internal type for state management
+interface PurchaseState {
+  step: PurchaseStep;
+  selectedPackage: CreditPackage | null;
+  snapToken: string | null;
+  error: string | null;
+}

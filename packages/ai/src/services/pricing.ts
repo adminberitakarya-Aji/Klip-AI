@@ -11,6 +11,18 @@
 
 import { GenerationType } from "../types";
 
+// TemplateShot type for template pricing (matches core schema)
+export interface TemplateShotInput {
+  generationType:
+    | "TEXT_TO_VIDEO"
+    | "IMAGE_TO_VIDEO"
+    | "VIDEO_TO_VIDEO"
+    | "TEXT_TO_IMAGE"
+    | "IMAGE_TO_IMAGE"
+    | "MOTION_CONTROL";
+  resolution: "720p" | "1080p" | "4k";
+}
+
 export interface PricingParams {
   shotCount: number;
   generationType: GenerationType;
@@ -236,4 +248,53 @@ export function calculateDiscount(
     perCreditPrice,
     savingsVsStarter,
   };
+}
+
+/**
+ * Calculate total credits cost from template shots
+ * Used by template creation/update API routes
+ *
+ * This centralizes the pricing formula that was previously duplicated
+ * in multiple API routes.
+ *
+ * @param shots - Array of template shots with generationType and resolution
+ * @returns Total credits cost (minimum 1 credit)
+ *
+ * @example
+ * const shots: TemplateShotInput[] = [
+ *   { generationType: "TEXT_TO_VIDEO", resolution: "1080p" },
+ *   { generationType: "IMAGE_TO_VIDEO", resolution: "1080p" },
+ * ];
+ * const credits = calculateCreditsFromShots(shots); // Returns total cost
+ */
+export function calculateCreditsFromShots(shots: TemplateShotInput[]): number {
+  // Generation type mapping to kebab-case
+  const GenerationType = {
+    TEXT_TO_VIDEO: "text-to-video",
+    IMAGE_TO_VIDEO: "image-to-video",
+    VIDEO_TO_VIDEO: "video-to-video",
+    TEXT_TO_IMAGE: "text-to-image",
+    IMAGE_TO_IMAGE: "image-to-image",
+    MOTION_CONTROL: "motion-control",
+  } as const;
+
+  let totalCredits = 0;
+
+  for (const shot of shots) {
+    // Normalize generation type to lowercase string
+    const genTypeString =
+      GenerationType[shot.generationType as keyof typeof GenerationType] ||
+      "text-to-video";
+
+    const generationMultiplier = PROVIDER_MULTIPLIERS[genTypeString] || 1.0;
+    const resolutionMultiplier = RESOLUTION_MULTIPLIERS[shot.resolution] || 1.0;
+
+    const perShotCost =
+      BASE_COST_PER_SHOT * generationMultiplier * resolutionMultiplier;
+    const baseCost = Math.ceil(perShotCost);
+    const retryBuffer = Math.ceil(baseCost * RETRY_BUFFER_PERCENTAGE);
+    totalCredits += baseCost + retryBuffer;
+  }
+
+  return Math.max(1, totalCredits); // Minimum 1 credit
 }
