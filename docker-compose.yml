@@ -1,0 +1,93 @@
+# ============================================
+# Klip-AI Docker Compose for Local Development
+# ============================================
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: klip-ai-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      # Database
+      DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/klipai?schema=public"
+      
+      # Auth
+      NEXTAUTH_SECRET: "${NEXTAUTH_SECRET:-your-super-secret-key-min-32-chars}"
+      NEXTAUTH_URL: "http://localhost:3001"
+      
+      # AI Providers
+      SEEDANCE_API_KEY: "${SEEDANCE_API_KEY:-}"
+      SEEDANCE_BASE_URL: "${SEEDANCE_BASE_URL:-https://api.seedance.com}"
+      KLING_API_KEY: "${KLING_API_KEY:-}"
+      KLING_BASE_URL: "${KLING_BASE_URL:-https://api.kling.com}"
+      WAN_API_KEY: "${WAN_API_KEY:-}"
+      WAN_BASE_URL: "${WAN_BASE_URL:-https://api.wan.com}"
+      
+      # Storage
+      R2_ACCOUNT_ID: "${R2_ACCOUNT_ID:-}"
+      R2_ACCESS_KEY_ID: "${R2_ACCESS_KEY_ID:-}"
+      R2_SECRET_ACCESS_KEY: "${R2_SECRET_ACCESS_KEY:-}"
+      R2_BUCKET: "${R2_BUCKET:-klip-ai-generations}"
+      R2_PUBLIC_URL: "${R2_PUBLIC_URL:-}"
+      BLOB_READ_WRITE_TOKEN: "${BLOB_READ_WRITE_TOKEN:-}"
+      
+      # FFmpeg
+      FFMPEG_PATH: "/usr/bin/ffmpeg"
+      
+      # Rate Limiting
+      UPSTASH_REDIS_REST_URL: "${UPSTASH_REDIS_REST_URL:-}"
+      UPSTASH_REDIS_REST_TOKEN: "${UPSTASH_REDIS_REST_TOKEN:-}"
+      
+      # Node Environment
+      NODE_ENV: "production"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      # Mount for development hot-reload (optional)
+      - ./apps/api/src:/app/apps/api/src:ro
+      - /app/node_modules
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: klip-ai-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: klipai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d klipai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: klip-ai-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
+  redis_data:

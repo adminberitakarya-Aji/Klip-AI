@@ -4,6 +4,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Standalone output diperlukan untuk Docker deployment
+  output: "standalone",
   experimental: {
     optimizePackageImports: [
       "@klipai/ui",

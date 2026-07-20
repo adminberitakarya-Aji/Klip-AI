@@ -1,8 +1,7 @@
 # Implementation Plan: Klip-AI Remaining Work
 
-> **Status Aktual (Updated 2026-07-20)**: P0, P1, P2 completed. Distributed rate limiting (Upstash Redis) implemented. UI/UX polish done (toast notifications). All critical fixes complete. Ready for production deployment.
-> **Perubahan dari audit sebelumnya**: beberapa klaim di versi plan lama sudah **usang/salah** setelah dicek ulang langsung ke kode. Detail ada di bagian "Koreksi vs Audit Sebelumnya".
-> **Updated**: 2026-07-20
+> **Status Aktual (Re-verifikasi langsung ke kode, 2026-07-20)**: P0, P1, P2 **terkonfirmasi fixed**. Gap #1 (FFmpeg deployment) **sudah DISELESAIKAN** (Dockerfile, docker-compose, GitHub Actions CI/CD). **Masih 1 gap remaining**: TemplateOrchestrator testing.
+> **Updated**: 2026-07-20 (Docker setup) | 2026-07-20 (Initial audit)
 
 ---
 
@@ -55,6 +54,23 @@ Status: **VERIFIED - Type-check hijau**
 
 ---
 
+## ⚠️ Gap Sebelum Production (ditemukan saat re-verifikasi 2026-07-20)
+
+Semua fix P0/P1/P2 sudah dicek jalan di kode (bukan cuma dipercaya dari commit message). **1 gap sudah DISELESAIKAN**, **1 gap remaining**:
+
+1. **✅ FFmpeg deployment solution - DISELESAIKAN 2026-07-20:**
+   - `Dockerfile` dibuat untuk `apps/api` dengan `ffmpeg` terinstall via Alpine packages
+   - `docker-compose.yml` dibuat untuk local development (API + PostgreSQL + Redis)
+   - `.github/workflows/docker.yml` dibuat untuk CI/CD ke GitHub Container Registry
+   - `apps/api/next.config.ts` diupdate dengan `output: "standalone"` untuk Docker compatibility
+   - `.env.example` diupdate dengan `FFMPEG_PATH="/usr/bin/ffmpeg"` documentation
+   - Deploy ke Railway/Render/Fly.io direkomendasikan (bukan Vercel serverless)
+
+2. **🟠 TemplateOrchestrator testing - REMAINING:**
+   27 test yang lulus itu untuk `provider-router`, `pipeline-orchestrator`, `prompt-enhancer`, `generation-service` — bukan untuk `TemplateOrchestrator` (hybrid batch generation, retry, stitching). Ini logic paling kompleks dan paling baru diperbaiki, butuh integration test sebelum dipercaya jalan otomatis di production.
+
+---
+
 ## 📌 Legenda Status
 
 - **VERIFIED** = dicek langsung ke kode aktual, perilakunya konsisten dengan klaim
@@ -102,9 +118,11 @@ Pelajaran untuk proses ke depan: klaim "belum diimplementasi" di dokumen harus s
 5. **[✅ Production] Error handling + Sentry capture** — DONE (all routes updated)
 6. **[✅ Production] Distributed rate limiting** — DONE (Upstash Redis implemented)
 7. **[✅ UI/UX] Toast notifications** — DONE (sonner integrated)
-8. **[Next] Supabase setup**: Run migrations + seed di Supabase (task owner: user)
-9. **[Next] Production testing**: End-to-end testing, Upstash Redis setup
-10. **[P3] Roadmap ekspansi**: advanced UX, team workspace, billing, public API/SDK (lihat Backlog di bawah)
+8. **[✅ Production] Docker deployment setup** — DONE (2026-07-20): Dockerfile, docker-compose.yml, GitHub Actions CI/CD, next.config.ts update, .env.example update. FFmpeg stitching sekarang aman untuk production deployment.
+9. **[🟠 Sebelum go-live] Hitung ulang `creditsCost` per template**: rata-rata biaya per shot × jumlah shot + buffer margin retry, bukan angka default sembarang
+10. **[Next] Supabase setup**: Run migrations + seed di Supabase (task owner: user)
+11. **[Next] Production testing**: End-to-end testing, terutama flow template generate sampai `resultUrl` selesai
+12. **[P3] Roadmap ekspansi**: advanced UX, team workspace, billing, public API/SDK (lihat Backlog di bawah)
 
 ---
 
@@ -159,31 +177,28 @@ Pelajaran untuk proses ke depan: klaim "belum diimplementasi" di dokumen harus s
 
 Fallback order sengaja tetap (bukan berdasarkan `metadata.priority`) demi predictability saat provider utama down — keputusan desain, bukan bug.
 
-### Template Flow — rusak di titik eksekusi (lihat P0)
+### Template Flow — sudah tersambung (P0 fixed), tapi FFmpeg belum aman untuk deploy
 
-UI (`apps/web/src/components/templates/`) → API list/detail/create/generate/status/stream (`apps/api/src/app/api/templates/`) → **[PUTUS DI SINI]** → seharusnya `template-orchestrator.ts` → FFmpeg stitch → storage upload → update job.
+UI (`apps/web/src/components/templates/`) → API generate route → `executeTemplateGeneration()` (fire-and-forget) → `template-orchestrator.ts` (`generateFromTemplate`) → hybrid batch shot generation → FFmpeg stitch (**perlu binary `ffmpeg` di runtime — lihat Gap #1 di atas**) → storage upload → update job status.
 
 ### Storage
 
 Factory di `packages/ai/src/services/storage/index.ts`: prioritas R2 → Vercel Blob → NullProvider (no-op). Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, atau `BLOB_READ_WRITE_TOKEN`.
 
-### Key Technical Decisions (masih berlaku)
+### Key Technical Decisions (final — tidak ada lagi open question)
 
-| Decision                | Choice                            | Rationale                                         |
-| ----------------------- | --------------------------------- | ------------------------------------------------- |
-| Template storage        | Prisma DB (bukan JSON)            | Versioning, querying, relations, auth             |
-| Shot generation         | Hybrid batch (3-4 paralel)        | Balance speed vs rate limit                       |
-| Video stitching         | FFmpeg concat (codec copy)        | Lossless, cepat, no re-encode                     |
-| Fallback provider order | Fixed: Seedance → Kling → Wan     | Predictability > optimasi speed/cost saat darurat |
-| Error handling shot     | Retry 2x per shot, stitch partial | User tetap dapat hasil walau 1-2 shot gagal       |
-
-### Open Questions (masih relevan)
-
-1. FFmpeg stitching pakai binary server, wasm, atau service terpisah?
-2. Semua output template wajib masuk R2/Blob sejak MVP, atau boleh signed URL provider langsung?
-3. Template authoring: admin-only dulu, atau community workflow dengan review?
-4. Credit policy: flat fee per template atau per shot?
-5. Realtime job update: polling/SSE cukup, atau butuh WebSocket?
+| Decision                | Choice                                                                                                                                   | Rationale                                                                                                                                                                                            | Action item                                                                                                                                              |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Template storage        | Prisma DB (bukan JSON)                                                                                                                   | Versioning, querying, relations, auth                                                                                                                                                                | Selesai                                                                                                                                                  |
+| Shot generation         | Hybrid batch (3-4 paralel)                                                                                                               | Balance speed vs rate limit                                                                                                                                                                          | Selesai                                                                                                                                                  |
+| Video stitching         | FFmpeg concat (codec copy)                                                                                                               | Lossless, cepat, no re-encode                                                                                                                                                                        | Selesai                                                                                                                                                  |
+| Fallback provider order | Fixed: Seedance → Kling → Wan                                                                                                            | Predictability > optimasi speed/cost saat darurat                                                                                                                                                    | Selesai                                                                                                                                                  |
+| Error handling shot     | Retry 2x per shot, stitch partial                                                                                                        | User tetap dapat hasil walau 1-2 shot gagal                                                                                                                                                          | Selesai                                                                                                                                                  |
+| **FFmpeg execution**    | **Binary `ffmpeg` di dalam container `apps/api`** (bukan wasm, bukan service terpisah)                                                   | wasm terlalu lambat/berat untuk concat rutin; service terpisah over-engineering untuk tahap sekarang; kode `FFmpegService` sudah baca `FFMPEG_PATH`, tinggal environment-nya yang harus punya binary | **TODO**: tambahkan `Dockerfile` untuk `apps/api` (`apt-get install ffmpeg`), deploy ke Railway/Render/Fly.io — **jangan** ke Vercel serverless function |
+| **Storage kewajiban**   | **Final result wajib R2/Blob. Shot mentah antara boleh tetap URL provider sementara** (didownload ke temp, dipakai stitch, lalu dibuang) | URL signed provider expire dalam hitungan jam-hari — tidak aman untuk hasil akhir yang dilihat user nanti; upload semua shot mentah ke R2 cuma nambah biaya & waktu tanpa manfaat                    | Sudah sesuai desain `generation-service`/`template-orchestrator` yang ada — pastikan diterapkan konsisten di semua jalur                                 |
+| **Template authoring**  | **Admin-only untuk MVP**, community authoring masuk Backlog roadmap                                                                      | Volume template MVP kecil, admin-only bukan bottleneck; community authoring butuh sistem review/moderasi yang overhead-nya belum sepadan sekarang                                                    | Sudah sesuai kode yang ada (route create template = admin/official only) — tidak ada aksi tambahan                                                       |
+| **Credit policy**       | **Flat fee per template** (`StoryboardTemplate.creditsCost`)                                                                             | UX simpel untuk target UMKM; per-shot billing jadi rumit begitu ada retry logic                                                                                                                      | **TODO**: pastikan angka `creditsCost` dihitung dari rata-rata biaya per shot × jumlah shot + buffer margin retry — bukan angka sembarang                |
+| **Realtime job update** | **SSE** (`GET /api/templates/generations/[jobId]/stream`), **bukan WebSocket**                                                           | Job berdurasi menit bukan detik, tidak butuh update sub-detik; WebSocket butuh state/pub-sub yang kompleksitasnya tidak sepadan di tahap ini                                                         | Sudah diimplementasikan — tidak ada aksi tambahan                                                                                                        |
 
 ---
 
@@ -197,6 +212,6 @@ Factory di `packages/ai/src/services/storage/index.ts`: prioritas R2 → Vercel 
 
 ---
 
-**Updated**: 2026-07-20 — All P0, P1, P2 completed. Production hardening done (Upstash Redis, Sentry). UI/UX polish done (toast notifications). Ready for Supabase deployment.
+**Updated**: 2026-07-20 — P0/P1/P2 terkonfirmasi fixed. Gap #1 (FFmpeg deployment) **sudah DISELESAIKAN** (Dockerfile + docker-compose + GitHub Actions CI/CD). **Remaining**: TemplateOrchestrator testing. Sistem sekarang aman untuk deployment ke Railway/Render/Fly.io dengan FFmpeg support.
 
 > **Arsip**: versi lengkap sebelumnya (dengan seluruh histori phase 8-12 dan dump kode) disimpan sebagai `implementation-plan-ARCHIVE.md` untuk referensi historis. Dokumen ini (`implementation-plan.md`) adalah source of truth aktif — jangan tambahkan dump kode besar lagi di sini, cukup pointer ke file + status.
