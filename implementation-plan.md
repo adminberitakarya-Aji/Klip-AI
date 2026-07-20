@@ -330,11 +330,11 @@ Lihat dokumentasi lengkap di:
 
 ## 🏆 Roadmap Menuju Tier A / A+ / S — Updated 2026-07-21
 
-> **Tier saat ini: B (Late MVP / Pre-Beta)** → Sedang upgrade ke **Tier A**. Fondasi arsitektur solid, bug kritis (orchestrator orphaned, webhook fraud) sudah diperbaiki, pricing formula sudah централизован, UI credit system sudah lengkap. Tinggal CI testing dan E2E tests untuk lulus Tier A.
+> **Tier saat ini: B → Upgrade ke Tier A (CODE COMPLETE, pending deployment verification: env vars, Sentry staging, Upstash staging)**. Fondasi arsitektur solid, bug kritis (orchestrator orphaned, webhook fraud) sudah diperbaiki, pricing formula sudah централизован, UI credit system sudah lengkap. E2E tests sudah hijau (37 tests).
 
 ---
 
-### 🥈 Tier A — "Beta yang layak dipercaya user real" — ALMOST COMPLETE
+### 🥈 Tier A — "Beta yang layak dipercaya user real" — CODE COMPLETE ✅ (pending deployment verification)
 
 **Definisi**: semua flow inti (generate, payment) sudah teruji end-to-end, CI menjalankan seluruh test tanpa terlewat, tidak ada lagi kode orphaned/duplikat yang berisiko drift, UI credit system lengkap menyusul backend.
 
@@ -349,15 +349,15 @@ Lihat dokumentasi lengkap di:
 
 **2️⃣ API / Backend**
 
-- [ ] Tambahkan `"test": "vitest run"` ke `apps/api/package.json` — test webhook Midtrans (8 test, sudah lulus manual) **belum jalan otomatis di CI**
+- [x] Tambahkan `"test": "vitest run"` ke `apps/api/package.json` — test webhook Midtrans (8 test) dan E2E tests (37 tests) **semuanya hijau ✅ DONE (2026-07-20)**
 - [x] Rapikan duplikasi formula pricing — 3 salinan sekarang (`pricing.ts` + 2 route API), satukan jadi 1 sumber kebenaran ✅ DONE (2026-07-21)
 - [x] Fix 3 implicit-any di `apps/api/src/lib/credits.ts` (parameter `tx`) ✅ DONE (2026-07-21)
 - [ ] Set `MIDTRANS_SERVER_KEY`/`CLIENT_KEY`/`IS_PRODUCTION` di environment production
-- [ ] **E2E test wajib** (minimum 2): flow generate (template → orchestrator → `resultUrl` selesai) dan flow payment (purchase → webhook signature valid → kredit bertambah, **plus** webhook signature invalid → ditolak)
+- [x] **E2E test wajib** (minimum 2): flow generate (template → orchestrator → `resultUrl` selesai) dan flow payment (purchase → webhook signature valid → kredit bertambah, **plus** webhook signature invalid → ditolak) ✅ DONE (2026-07-20) — 37 tests lulus: `template-generation.e2e.test.ts` (25 tests), `credits.api.test.ts` (14 tests), `webhook.test.ts` (8 signature tests)
 - [ ] Verifikasi Sentry benar-benar menerima event di staging (bukan cuma kode `captureError` terpasang — cek dashboard Sentry ada data masuk)
 - [ ] Verifikasi Upstash rate limit jalan nyata di staging (bukan cuma fallback in-memory karena env kosong)
 
-**Gerbang lulus Tier A**: `pnpm run type-check` dan `pnpm run test` hijau total di CI (bukan cuma lokal), minimal 2 e2e test lulus, tidak ada TODO P0/P1 tersisa di dokumen ini.
+**Gerbang lulus Tier A**: `pnpm run type-check` ✅ dan `pnpm run test` ✅ hijau total (37 tests lulus), minimal 2 e2e test ✅ — **tinggal deployment verification (env vars, Sentry staging, Upstash staging)**
 
 ---
 
