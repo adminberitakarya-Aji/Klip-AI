@@ -59,10 +59,31 @@ function verifySignature(notification: MidtransNotification): boolean {
 
   // Constant-time comparison to prevent timing attacks
   const providedSignature = notification.signature_key;
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(expectedSignature),
-    Buffer.from(providedSignature),
-  );
+
+  // Validate signature length before comparison
+  // SHA512 produces 128 hex characters
+  if (providedSignature.length !== 128) {
+    console.warn(
+      `Invalid signature length for ${notification.order_id}: expected 128, got ${providedSignature.length}`,
+    );
+    return false;
+  }
+
+  let isValid = false;
+  try {
+    isValid = crypto.timingSafeEqual(
+      Buffer.from(expectedSignature),
+      Buffer.from(providedSignature),
+    );
+  } catch (error) {
+    // Handle case where buffers have different lengths (shouldn't happen after length check)
+    // or any other crypto error
+    console.warn(
+      `Signature comparison failed for ${notification.order_id}:`,
+      error,
+    );
+    return false;
+  }
 
   if (!isValid) {
     console.warn(`Invalid Midtrans signature for ${notification.order_id}`);

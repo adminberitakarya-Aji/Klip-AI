@@ -32,7 +32,8 @@ interface CreditPackage {
   isPopular: boolean;
 }
 
-type PurchaseStep = "select" | "payment" | "processing" | "success" | "error";
+type PurchaseStep =
+  "select" | "payment" | "processing" | "pending" | "success" | "error";
 
 // Extend Window type for Midtrans Snap
 declare global {
@@ -134,7 +135,9 @@ export function CreditPurchase() {
               setState((prev) => ({ ...prev, step: "success" }));
             },
             onPending: () => {
-              setState((prev) => ({ ...prev, step: "success" }));
+              // User has initiated payment but it's pending confirmation
+              // Don't mark as success yet - wait for webhook confirmation
+              setState((prev) => ({ ...prev, step: "pending" }));
             },
             onError: () => {
               setState((prev) => ({
@@ -144,7 +147,9 @@ export function CreditPurchase() {
               }));
             },
             onClose: () => {
-              setState((prev) => ({ ...prev, step: "success" }));
+              // User closed the popup without completing payment
+              // Go back to payment selection, don't assume success
+              setState((prev) => ({ ...prev, step: "payment" }));
             },
           });
         } else {
@@ -279,6 +284,37 @@ export function CreditPurchase() {
         <p className="text-neutral-400">
           Mohon tunggu, Anda akan diarahkan ke halaman pembayaran Midtrans.
         </p>
+      </Card>
+    );
+  }
+
+  // Pending state - payment initiated but not yet confirmed
+  if (state.step === "pending") {
+    return (
+      <Card className="p-8 text-center bg-neutral-900/50 border-yellow-500/30">
+        <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">
+          Pembayaran Pending
+        </h3>
+        <p className="text-neutral-400 mb-6">
+          Pembayaran Anda sedang diproses. Silakan selesaikan pembayaran dan
+          tunggu konfirmasi dari Midtrans.
+          <br />
+          <span className="text-sm text-neutral-500">
+            Halaman ini akan otomatis ter-update setelah pembayaran
+            dikonfirmasi.
+          </span>
+        </p>
+        <div className="flex gap-4 justify-center">
+          <Button onClick={() => router.push("/")} variant="outline">
+            Kembali ke Beranda
+          </Button>
+          <Button onClick={() => router.refresh()}>
+            Cek Status Pembayaran
+          </Button>
+        </div>
       </Card>
     );
   }
