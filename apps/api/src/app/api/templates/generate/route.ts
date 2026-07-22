@@ -9,6 +9,11 @@ import { templateOrchestrator } from "@klipai/ai";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";
 
+type TransactionClient = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 /**
  * Fire-and-forget execution of template generation.
  * Runs asynchronously after the response is sent to the user.
@@ -160,26 +165,67 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create template generation job
-    const job = await prisma.templateGenerationJob.create({
-      data: {
-        userId: sessionUser.id,
-        templateId: template.id,
-        brandKitId: input.brandKitId,
-        totalShots: template.shotCount,
-        status: "QUEUED",
-        progress: 0,
-        currentShot: 0,
-        customizations: input.customizations as any,
-        creditsUsed: 0, // Will be updated after successful shots
-      },
-    });
+    // Create job + deduct credits atomically. The conditional `where`
+    // clause (credits: { gte: creditsCost }) means the decrement only
+    // succeeds if the balance is still sufficient at commit time, closing
+    // the race window where two concurrent requests could both pass the
+    // earlier `user.credits < creditsCost` check and both deduct, pushing
+    // the balance negative. Mirrors the guard already used in
+    // apps/api/src/app/api/generate/[type]/route.ts.
+    let job: { id: string; status: string };
+    let remainingCredits: number;
+    try {
+      const result = await prisma.$transaction(
+        async (tx: TransactionClient) => {
+          const createdJob = await tx.templateGenerationJob.create({
+            data: {
+              userId: sessionUser.id,
+              templateId: template.id,
+              brandKitId: input.brandKitId,
+              totalShots: template.shotCount,
+              status: "QUEUED",
+              progress: 0,
+              currentShot: 0,
+              customizations: input.customizations as any,
+              creditsUsed: 0, // Will be updated after successful shots
+            },
+          });
 
-    // Deduct credits upfront
-    await prisma.user.update({
-      where: { id: sessionUser.id },
-      data: { credits: { decrement: creditsCost } },
-    });
+          const updated = await tx.user.updateMany({
+            where: { id: sessionUser.id, credits: { gte: creditsCost } },
+            data: { credits: { decrement: creditsCost } },
+          });
+
+          if (updated.count === 0) {
+            throw new Error("INSUFFICIENT_CREDITS");
+          }
+
+          const updatedUser = await tx.user.findUniqueOrThrow({
+            where: { id: sessionUser.id },
+            select: { credits: true },
+          });
+
+          return { job: createdJob, remainingCredits: updatedUser.credits };
+        },
+      );
+
+      job = result.job;
+      remainingCredits = result.remainingCredits;
+    } catch (error) {
+      if (error instanceof Error && error.message === "INSUFFICIENT_CREDITS") {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: "INSUFFICIENT_CREDITS",
+              message: `Need ${creditsCost} credits, you have insufficient balance`,
+            },
+          },
+          { status: 402 },
+        );
+      }
+      throw error;
+    }
 
     // Fire-and-forget: execute generation in background
     // User will poll for job status to see progress/result
@@ -199,7 +245,7 @@ export async function POST(request: NextRequest) {
         jobId: job.id,
         status: job.status,
         creditsDeducted: creditsCost,
-        remainingCredits: user.credits - creditsCost,
+        remainingCredits,
       },
     });
   } catch (error) {

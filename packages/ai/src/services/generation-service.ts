@@ -418,18 +418,45 @@ export class GenerationService {
 
   async cancelJob(id: string): Promise<boolean> {
     const job = this.jobs.get(id);
-    if (!job || job.status !== GenerationStatus.PROCESSING) {
-      return false;
+
+    if (job) {
+      if (job.status !== GenerationStatus.PROCESSING) {
+        return false;
+      }
+      // Would need to track provider job ID to actually abort the
+      // in-flight provider call. For now, mark as cancelled.
+      await this.updateJob(id, {
+        status: GenerationStatus.FAILED,
+        error: "Cancelled by user",
+        updatedAt: Date.now(),
+      });
+      return true;
     }
 
-    // Would need to track provider job ID to cancel
-    // For now, mark as cancelled
-    await this.updateJob(id, {
-      status: GenerationStatus.FAILED,
-      error: "Cancelled by user",
-      updatedAt: Date.now(),
-    });
-    return true;
+    // Not in this instance's in-memory cache — the job may still be
+    // legitimately PROCESSING on a different instance (serverless/
+    // multi-instance deployments). Fall back to the database, which is
+    // the source of truth checkStatus() already relies on. This can't
+    // abort work actually in flight on the other instance without a
+    // shared queue/pub-sub, but it does correctly mark the job as
+    // cancelled in the DB instead of silently reporting "not found".
+    try {
+      const updated = await prisma.generation.updateMany({
+        where: { id, status: "PROCESSING" },
+        data: {
+          status: "FAILED",
+          error: "Cancelled by user",
+        },
+      });
+      return updated.count > 0;
+    } catch (error) {
+      logger.db.error(
+        "Generation",
+        "cancelJob",
+        error instanceof Error ? error : new Error(String(error)),
+      );
+      return false;
+    }
   }
 }
 

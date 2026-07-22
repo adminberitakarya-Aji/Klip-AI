@@ -254,8 +254,16 @@ export function calculateDiscount(
  * Calculate total credits cost from template shots
  * Used by template creation/update API routes
  *
- * This centralizes the pricing formula that was previously duplicated
- * in multiple API routes.
+ * This shares the same rounding strategy as calculateTemplateCost(): sum the
+ * *raw* (unrounded) per-shot cost across every shot first, then apply
+ * Math.ceil() exactly once at the end for baseCost, then once more for the
+ * retry buffer. Rounding per-shot instead (ceil each shot individually
+ * before summing) silently overcharges multi-shot templates, since each
+ * shot's fractional cost gets rounded up independently rather than netting
+ * out across the template — for 3 identical text-to-video/1080p shots that
+ * previously produced 9 credits here vs 6 credits from
+ * calculateTemplateCost() for the exact same scenario. Rounding once at the
+ * end keeps both formulas in agreement.
  *
  * @param shots - Array of template shots with generationType and resolution
  * @returns Total credits cost (minimum 1 credit)
@@ -278,7 +286,8 @@ export function calculateCreditsFromShots(shots: TemplateShotInput[]): number {
     MOTION_CONTROL: "motion-control",
   } as const;
 
-  let totalCredits = 0;
+  // Sum raw (unrounded) per-shot cost across all shots first
+  let rawTotal = 0;
 
   for (const shot of shots) {
     // Normalize generation type to lowercase string
@@ -289,12 +298,15 @@ export function calculateCreditsFromShots(shots: TemplateShotInput[]): number {
     const generationMultiplier = PROVIDER_MULTIPLIERS[genTypeString] || 1.0;
     const resolutionMultiplier = RESOLUTION_MULTIPLIERS[shot.resolution] || 1.0;
 
-    const perShotCost =
+    rawTotal +=
       BASE_COST_PER_SHOT * generationMultiplier * resolutionMultiplier;
-    const baseCost = Math.ceil(perShotCost);
-    const retryBuffer = Math.ceil(baseCost * RETRY_BUFFER_PERCENTAGE);
-    totalCredits += baseCost + retryBuffer;
   }
+
+  // Round once at the end, same as calculateTemplateCost(), so both
+  // formulas produce identical totals for identical inputs
+  const baseCost = Math.ceil(rawTotal);
+  const retryBuffer = Math.ceil(baseCost * RETRY_BUFFER_PERCENTAGE);
+  const totalCredits = baseCost + retryBuffer;
 
   return Math.max(1, totalCredits); // Minimum 1 credit
 }
