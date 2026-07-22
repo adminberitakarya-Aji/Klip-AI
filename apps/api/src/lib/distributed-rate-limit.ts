@@ -13,6 +13,15 @@ const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
 const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 const isUpstashConfigured = Boolean(upstashUrl && upstashToken);
 
+// Log error at startup if Upstash is not configured (critical for production)
+if (!isUpstashConfigured) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "[RATE LIMIT] Upstash Redis not configured. Falling back to in-memory limiter. " +
+      "Rate limiting will NOT work correctly in multi-instance/serverless deployments.",
+  );
+}
+
 // Upstash Redis client (only initialized if env vars are set)
 const redis = isUpstashConfigured
   ? new Redis({

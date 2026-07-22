@@ -227,6 +227,9 @@ export interface HandleNotificationResult {
  *
  * This endpoint is called by Midtrans when payment status changes.
  * IMPORTANT: Verify the signature to ensure it's really from Midtrans.
+ *
+ * Uses atomic conditional update to prevent race conditions when Midtrans
+ * sends multiple notifications for the same order (retry scenarios).
  */
 export async function handleMidtransNotification(
   notification: MidtransNotification,
@@ -240,30 +243,6 @@ export async function handleMidtransNotification(
     statusCode: status_code,
     paymentType: notification.payment_type,
   });
-
-  // Find the transaction
-  const transaction = await prisma.creditTransaction.findFirst({
-    where: { orderId: order_id },
-    include: {
-      package: true,
-      user: true,
-    },
-  });
-
-  if (!transaction) {
-    logger.warn("Transaction not found for Midtrans notification", {
-      orderId: order_id,
-    });
-    return { success: false, message: "Transaction not found" };
-  }
-
-  // If already processed, skip
-  if (transaction.paymentStatus === PaymentStatus.COMPLETED) {
-    logger.info("Transaction already processed, skipping", {
-      orderId: order_id,
-    });
-    return { success: true, message: "Already processed" };
-  }
 
   // Map Midtrans status to our PaymentStatus
   let newStatus: PaymentStatus;
@@ -287,19 +266,59 @@ export async function handleMidtransNotification(
       newStatus = PaymentStatus.PROCESSING;
   }
 
-  // Update transaction status
-  await prisma.creditTransaction.update({
-    where: { id: transaction.id },
+  // Atomic update: only update if NOT already COMPLETED
+  // This prevents race conditions where two concurrent webhooks both try to process
+  const updated = await prisma.creditTransaction.updateMany({
+    where: {
+      orderId: order_id,
+      paymentStatus: { not: PaymentStatus.COMPLETED },
+    },
     data: {
       paymentStatus: newStatus,
       metadata: {
-        ...((transaction.metadata as object) || {}),
         midtransStatus: transaction_status,
         midtransTransactionId: notification.transaction_id,
         processedAt: new Date().toISOString(),
       },
     },
   });
+
+  // If no rows updated, transaction either doesn't exist or was already processed
+  if (updated.count === 0) {
+    // Check if it exists but was already completed (idempotent)
+    const existing = await prisma.creditTransaction.findFirst({
+      where: { orderId: order_id },
+      select: { paymentStatus: true },
+    });
+
+    if (existing?.paymentStatus === PaymentStatus.COMPLETED) {
+      logger.info("Transaction already processed, skipping", {
+        orderId: order_id,
+      });
+      return { success: true, message: "Already processed" };
+    }
+
+    logger.warn("Transaction not found for Midtrans notification", {
+      orderId: order_id,
+    });
+    return { success: false, message: "Transaction not found" };
+  }
+
+  // Fetch the updated transaction to get user details and credit amount
+  const transaction = await prisma.creditTransaction.findFirst({
+    where: { orderId: order_id },
+    include: {
+      package: true,
+      user: true,
+    },
+  });
+
+  if (!transaction) {
+    logger.error("Transaction disappeared after update", {
+      orderId: order_id,
+    });
+    return { success: false, message: "Transaction not found after update" };
+  }
 
   // If payment is completed (settlement/capture), add credits to user
   if (newStatus === PaymentStatus.COMPLETED) {
@@ -323,12 +342,8 @@ export async function handleMidtransNotification(
       credits,
       orderId: order_id,
     });
-  }
-
-  // If payment failed, could trigger refund logic here if needed
-  if (newStatus === PaymentStatus.FAILED) {
+  } else if (newStatus === PaymentStatus.FAILED) {
     logger.info("Payment failed", { orderId: order_id });
-    // Credits are not added, transaction remains in FAILED state
   }
 
   return { success: true, message: `Status updated to ${newStatus}` };

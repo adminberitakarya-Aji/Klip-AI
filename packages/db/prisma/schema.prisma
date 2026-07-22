@@ -455,10 +455,10 @@ model CreditTransaction {
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   package     CreditPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
+  @@unique([orderId])
   @@index([userId])
   @@index([type])
   @@index([createdAt])
-  @@index([orderId])
   @@map("credit_transactions")
 }
 
