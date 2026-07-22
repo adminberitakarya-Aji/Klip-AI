@@ -18,7 +18,7 @@ async function main() {
     // ============================================
     {
       name: "Showcase Produk UMKM - 30 Detik",
-      slug: "umkm-produce-showcase-30s",
+      slug: "umkm-produk-showcase-30s",
       description:
         "Template showcase produk UMKM klasik 30 detik untuk Instagram Reels/TikTok. Cocok untuk makanan, fashion, skincare, dan aksesoris. Struktur: Hook (3s) → Product Demo (12s) → Benefit (10s) → CTA (5s).",
       category: "UMKM",

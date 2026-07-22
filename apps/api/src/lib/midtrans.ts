@@ -8,6 +8,7 @@
 
 import { prisma, CreditTransactionType, PaymentStatus } from "@klipai/db";
 import { addCredits } from "./credits";
+import { logger } from "@klipai/core/logger";
 
 // Midtrans Server Key (from environment)
 const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
@@ -150,7 +151,11 @@ export async function createSnapPayment(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Midtrans API error:", errorText);
+      logger.error("Midtrans API error", {
+        orderId,
+        statusCode: response.status,
+        errorText,
+      });
 
       // Update transaction as failed
       await prisma.creditTransaction.updateMany({
@@ -174,7 +179,10 @@ export async function createSnapPayment(
       redirectUrl: responseData.redirect_url,
     };
   } catch (error) {
-    console.error("Error creating Midtrans payment:", error);
+    logger.error("Error creating Midtrans payment", {
+      orderId,
+      error: error instanceof Error ? error.message : String(error),
+    });
 
     // Update transaction as failed
     await prisma.creditTransaction
@@ -225,9 +233,13 @@ export async function handleMidtransNotification(
 ): Promise<HandleNotificationResult> {
   const { order_id, transaction_status, status_code } = notification;
 
-  console.log(
-    `Midtrans notification for ${order_id}: ${transaction_status} (${status_code})`,
-  );
+  // Log only order_id and status (redact sensitive data)
+  logger.info("Midtrans notification received", {
+    orderId: order_id,
+    transactionStatus: transaction_status,
+    statusCode: status_code,
+    paymentType: notification.payment_type,
+  });
 
   // Find the transaction
   const transaction = await prisma.creditTransaction.findFirst({
@@ -239,13 +251,17 @@ export async function handleMidtransNotification(
   });
 
   if (!transaction) {
-    console.warn(`Transaction not found: ${order_id}`);
+    logger.warn("Transaction not found for Midtrans notification", {
+      orderId: order_id,
+    });
     return { success: false, message: "Transaction not found" };
   }
 
   // If already processed, skip
   if (transaction.paymentStatus === PaymentStatus.COMPLETED) {
-    console.log(`Transaction ${order_id} already processed`);
+    logger.info("Transaction already processed, skipping", {
+      orderId: order_id,
+    });
     return { success: true, message: "Already processed" };
   }
 
@@ -302,14 +318,16 @@ export async function handleMidtransNotification(
       },
     );
 
-    console.log(
-      `Credits added to user ${transaction.userId}: ${credits} credits`,
-    );
+    logger.info("Credits added to user", {
+      userId: transaction.userId,
+      credits,
+      orderId: order_id,
+    });
   }
 
   // If payment failed, could trigger refund logic here if needed
   if (newStatus === PaymentStatus.FAILED) {
-    console.log(`Payment failed for ${order_id}`);
+    logger.info("Payment failed", { orderId: order_id });
     // Credits are not added, transaction remains in FAILED state
   }
 

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@klipai/db/client";
 import { z } from "zod";
 import { providerRouter } from "./provider-router";
 import { generationService } from "./generation-service";
@@ -22,8 +22,6 @@ import {
   templateGenerateSchema,
 } from "@klipai/core/schemas/template";
 import { BrandKit } from "@prisma/client";
-
-const prisma = new PrismaClient();
 
 /**
  * Convert Prisma enum format to pipeline string format

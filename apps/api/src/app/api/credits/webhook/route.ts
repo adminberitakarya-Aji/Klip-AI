@@ -14,6 +14,7 @@ import {
   handleMidtransNotification,
   type MidtransNotification,
 } from "@/lib/midtrans";
+import { logger } from "@klipai/core/logger";
 
 // Midtrans Server Key for signature verification
 const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
@@ -31,19 +32,21 @@ const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY || "";
 function verifySignature(notification: MidtransNotification): boolean {
   // Reject if no signature provided - this is required for security
   if (!notification.signature_key) {
-    console.warn("Midtrans webhook missing signature_key");
+    logger.warn("Midtrans webhook missing signature_key", {
+      orderId: notification.order_id,
+    });
     return false;
   }
 
   // Check if server key is configured
   if (!MIDTRANS_SERVER_KEY) {
-    console.error(
+    logger.error(
       "MIDTRANS_SERVER_KEY not configured - cannot verify signature",
     );
     // In development without server key, we might want to be lenient
     // but in production this should never happen
     if (process.env.NODE_ENV === "development") {
-      console.warn("DEV MODE: Skipping signature verification");
+      logger.warn("DEV MODE: Skipping signature verification");
       return true;
     }
     return false;
@@ -63,7 +66,7 @@ function verifySignature(notification: MidtransNotification): boolean {
   // Validate signature length before comparison
   // SHA512 produces 128 hex characters
   if (providedSignature.length !== 128) {
-    console.warn(
+    logger.warn(
       `Invalid signature length for ${notification.order_id}: expected 128, got ${providedSignature.length}`,
     );
     return false;
@@ -78,17 +81,14 @@ function verifySignature(notification: MidtransNotification): boolean {
   } catch (error) {
     // Handle case where buffers have different lengths (shouldn't happen after length check)
     // or any other crypto error
-    console.warn(
-      `Signature comparison failed for ${notification.order_id}:`,
-      error,
-    );
+    logger.warn(`Signature comparison failed for ${notification.order_id}:`, {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return false;
   }
 
   if (!isValid) {
-    console.warn(`Invalid Midtrans signature for ${notification.order_id}`);
-    console.warn(`Expected: ${expectedSignature}`);
-    console.warn(`Got: ${providedSignature}`);
+    logger.warn(`Invalid Midtrans signature for ${notification.order_id}`);
   }
 
   return isValid;
@@ -98,17 +98,18 @@ export async function POST(request: NextRequest) {
   try {
     const notification: MidtransNotification = await request.json();
 
-    // Log raw notification for debugging
-    console.log(
-      "Received Midtrans webhook:",
-      JSON.stringify(notification, null, 2),
-    );
+    // Log only order_id and status for debugging (redact sensitive data)
+    logger.info("Received Midtrans webhook", {
+      orderId: notification.order_id,
+      transactionStatus: notification.transaction_status,
+      statusCode: notification.status_code,
+    });
 
     // CRITICAL: Verify signature to prevent fake webhook attacks
     // This protects against users creating fake settlement notifications
     // to get free credits without paying
     if (!verifySignature(notification)) {
-      console.warn(
+      logger.warn(
         `Rejected webhook for ${notification.order_id}: Invalid signature`,
       );
       return NextResponse.json(
@@ -117,14 +118,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`Signature verified for order: ${notification.order_id}`);
+    logger.info("Signature verified for order", {
+      orderId: notification.order_id,
+    });
 
     // Handle the notification
     const result = await handleMidtransNotification(notification);
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error processing Midtrans webhook:", error);
+    logger.error("Error processing Midtrans webhook", {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { success: false, error: "Failed to process notification" },
       { status: 500 },

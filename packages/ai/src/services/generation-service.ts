@@ -211,7 +211,6 @@ export class GenerationService {
       await prisma.generation.update({
         where: { id: jobId },
         data: {
-          retryCount: { increment: 0 }, // no-op on first failure; retryFailedGeneration() increments on actual retry
           lastFailedAt: new Date(),
         },
       });

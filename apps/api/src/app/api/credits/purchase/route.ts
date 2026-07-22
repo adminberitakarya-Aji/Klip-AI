@@ -8,6 +8,7 @@ import type { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { getCreditPackageBySlug } from "@/lib/credits";
 import { createSnapPayment } from "@/lib/midtrans";
+import { captureError } from "@/lib/error-capture";
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error creating purchase:", error);
+    captureError("POST /api/credits/purchase", error);
     return NextResponse.json(
       { success: false, error: "Failed to create purchase" },
       { status: 500 },

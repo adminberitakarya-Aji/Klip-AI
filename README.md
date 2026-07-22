@@ -27,7 +27,7 @@
 | **Inpainting/Outpainting** | Extend canvas, remove objects, fill masked areas               |
 | **Depth/Normal Control**   | Geometric control via depth & normal maps                      |
 | **Multi-Shot Storyboard**  | Generate 5-10 shots dari 1 prompt, auto-edit & stitch          |
-| **Audio Generation**       | TTS, Sound Effects, Music, Lip Sync (Indonesian voices)        |
+| **Pricing**                | Free 10 credits (one-time), Paket mulai Rp 99.000/bulan        |
 
 ---
 
@@ -44,24 +44,28 @@ klip-ai/
 │   │
 │   └── api/                    # Next.js 15 API Routes (Backend)
 │       ├── src/app/api/        # API Routes
-│       │   ├── generate/       # 6 AI generation endpoints
+│       │   ├── generate/       # AI generation endpoints
 │       │   ├── user/           # User generations history
+│       │   ├── credits/        # Credits balance, purchase, webhook
+│       │   ├── templates/      # Template browsing, generation
+│       │   ├── audio/          # Audio/voice generation
 │       │   └── auth/           # NextAuth v5 endpoints
-│       └── src/lib/            # Auth config, utilities
+│       └── src/lib/           # Auth config, utilities, midtrans, rate-limit
 │
 ├── packages/
 │   ├── ai/                     # 🤖 AI Services & Providers
 │   │   ├── src/
-│   │   │   ├── providers/      # 6 Provider implementations
-│   │   │   │   ├── base.ts          # Abstract BaseProvider
-│   │   │   │   ├── text-to-video.ts
-│   │   │   │   ├── image-to-video.ts
-│   │   │   │   ├── video-to-video.ts
-│   │   │   │   ├── text-to-image.ts
-│   │   │   │   ├── image-to-image.ts
-│   │   │   │   └── motion-control.ts
+│   │   │   ├── providers/      # Provider implementations
+│   │   │   │   ├── base.ts          # Abstract BaseProvider (shared logic)
+│   │   │   │   ├── kling.ts         # Kling provider
+│   │   │   │   ├── seedance.ts      # Seedance provider
+│   │   │   │   └── wan.ts           # Wan provider
+│   │   │   ├── pipeline/       # AI pipeline types & configs
 │   │   │   ├── services/
-│   │   │   │   └── generation-service.ts  # Orchestration + DB
+│   │   │   │   ├── generation-service.ts   # Orchestration + DB
+│   │   │   │   ├── template-orchestrator.ts # Template-to-generation
+│   │   │   │   ├── provider-router.ts       # Provider routing logic
+│   │   │   │   └── pricing.ts               # Credit pricing
 │   │   │   └── types.ts        # Provider interfaces, options
 │   │
 │   ├── core/                   # 📦 Shared Types, Schemas, Utils
@@ -115,12 +119,16 @@ klip-ai/
 | **State Management**   | Zustand                        | 4.5               |
 | **Data Fetching**      | TanStack Query                 | 5.40              |
 | **Authentication**     | NextAuth.js                    | 5.0 (beta)        |
-| **Database ORM**       | Prisma                         | 5.15              |
-| **Database**           | PostgreSQL                     | 15+               |
+| **Database ORM**       | Prisma                         | 5.22              |
+| **Database**           | PostgreSQL (Supabase)          | 15+               |
+| **Rate Limiting**      | Upstash Redis                  | Latest            |
 | **Validation**         | Zod                            | 3.23              |
 | **Forms**              | React Hook Form + Zod Resolver | 7.51              |
 | **Notifications**      | Sonner                         | 1.5               |
 | **Charts**             | Recharts                       | 3.9               |
+| **Error Tracking**     | Sentry                         | Latest            |
+| **Logging**            | Pino                           | Latest            |
+| **Payments**           | Midtrans Snap                  | Latest            |
 
 ---
 
@@ -333,6 +341,24 @@ POST /api/generate/[type]
 | `GET`  | `/api/generate/[id]/status` | Cek status generation             |
 | `GET`  | `/api/user/generations`     | Riwayat generasi user (paginated) |
 
+### Credits
+
+| Method | Endpoint                       | Description                   |
+| ------ | ------------------------------ | ----------------------------- |
+| `GET`  | `/api/credits/balance`         | Cek balance credits user      |
+| `POST` | `/api/credits/purchase`        | Create Midtrans Snap payment  |
+| `POST` | `/api/credits/webhook`         | Midtrans payment notification |
+| `POST` | `/api/credits/purchase/status` | Check purchase status         |
+
+### Templates
+
+| Method | Endpoint                             | Description                      |
+| ------ | ------------------------------------ | -------------------------------- |
+| `GET`  | `/api/templates`                     | List all templates               |
+| `GET`  | `/api/templates/[slug]`              | Get template by slug             |
+| `POST` | `/api/templates/generate`            | Generate from template           |
+| `GET`  | `/api/templates/generations/[jobId]` | Check template generation status |
+
 ### Auth Endpoints (NextAuth v5)
 
 | Method     | Endpoint                  | Description   |
@@ -352,13 +378,13 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(USER)
-  subscription  Subscription @default(FREE)
-  credits       Int       @default(30)
+  credits       Int       @default(10)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   accounts      Account[]
   sessions      Session[]
   generations   Generation[]
+  creditTransactions CreditTransaction[]
 }
 
 model Generation {
@@ -369,10 +395,19 @@ model Generation {
   status      GenerationStatus @default(QUEUED)
   progress    Int              @default(0)
   resultUrl   String?
+  resultUrls  String[]
   error       String?
   options     Json?
-  inputImages String[]
-  inputVideo  String?
+  images      String[]
+  video       String?
+  referenceImages Json?
+  motionBrush     Json?
+  cameraControl   Json?
+  physics         Json?
+  postProcessing  Json?
+  retryCount      Int       @default(0)
+  lastFailedAt    DateTime?
+  metadata     Json?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   completedAt DateTime?
@@ -382,12 +417,33 @@ model Generation {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([userId, status])
+  @@map("generations")
+}
+
+model CreditTransaction {
+  id           String              @id @default(cuid())
+  userId       String
+  amount       Int
+  type         CreditTransactionType
+  description  String?
+  orderId      String?             @unique
+  paymentStatus PaymentStatus      @default(PENDING)
+  paymentType  String?
+  createdAt    DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@map("credit_transactions")
 }
 
 enum Role { USER ADMIN }
-enum Subscription { FREE PRO UMKM }
-enum GenerationType { TEXT_TO_VIDEO IMAGE_TO_VIDEO VIDEO_TO_VIDEO TEXT_TO_IMAGE IMAGE_TO_IMAGE MOTION_CONTROL }
+enum GenerationType { TEXT_TO_VIDEO IMAGE_TO_VIDEO VIDEO_TO_VIDEO TEXT_TO_IMAGE IMAGE_TO_IMAGE MOTION_CONTROL VIDEO_TO_VIDEO_STYLE_TRANSFER INPAINTING_OUTPAINTING DEPTH_NORMAL_CONTROL MULTI_SHOT_STORYBOARD }
 enum GenerationStatus { IDLE QUEUED PROCESSING COMPLETED FAILED }
+enum CreditTransactionType { USAGE PURCHASE REFUND FREE_BONUS }
+enum PaymentStatus { PENDING COMPLETED FAILED REFUNDED }
 ```
 
 ---
@@ -396,13 +452,17 @@ enum GenerationStatus { IDLE QUEUED PROCESSING COMPLETED FAILED }
 
 ### `@klipai/ai` — AI Services
 
-- **Providers**: 6 concrete implementations extending `BaseProvider`
+- **Providers**: 3 concrete implementations (Kling, Seedance, Wan) extending `BaseProvider`
 - **GenerationService**: Orchestrates generation lifecycle (DB + Provider)
+- **TemplateOrchestrator**: Converts templates to generations with brand kit support
+- **ProviderRouter**: Intelligent routing based on generation type
+- **Pricing**: Credit cost calculation
 - **Types**: Provider interfaces, options per generation type
+- **Pipeline**: Advanced types for reference images, camera control, motion brush, physics
 
 ### `@klipai/core` — Shared Core
 
-- **Types**: Generation, User, Subscription, API response types
+- **Types**: Generation, User, API response types
 - **Schemas**: Zod validation for requests/responses
 - **Utils**: `cn()` helper (clsx + tailwind-merge)
 - **Constants**: App-wide constants, enums
@@ -410,8 +470,8 @@ enum GenerationStatus { IDLE QUEUED PROCESSING COMPLETED FAILED }
 ### `@klipai/db` — Database
 
 - **Prisma Client**: Singleton pattern untuk serverless
-- **Schema**: User, Account, Session, Generation models
-- **Scripts**: generate, push, migrate, studio
+- **Schema**: User, Account, Session, Generation, CreditTransaction models
+- **Scripts**: generate, push, migrate, studio, seed-templates, seed-credits
 
 ### `@klipai/ui` — UI Components
 
@@ -487,18 +547,18 @@ Menggunakan **NextAuth.js v5 (Beta)** dengan:
 - **Prisma Adapter**: `@auth/prisma-adapter`
 - **Session Strategy**: JWT dengan database sync
 - **Role-based Access**: `user` | `admin`
-- **Subscription Tiers**: `free` | `pro` | `umkm`
 
-### Subscription Plans
+### Credit Packages
 
-| Feature            | Free   | Pro        | UMKM       |
-| ------------------ | ------ | ---------- | ---------- |
-| **Harga/Bulan**    | Gratis | Rp 199.000 | Rp 499.000 |
-| **Kredit/Bulan**   | 30     | 500        | 2.000      |
-| **Max Resolusi**   | 720p   | 1080p      | 4K         |
-| **Watermark**      | Ya     | Tidak      | Tidak      |
-| **Priority Queue** | Tidak  | Ya         | Ya         |
-| **Team Seats**     | 1      | 3          | 10         |
+| Feature            | Free   | Starter   | Pro        |
+| ------------------ | ------ | --------- | ---------- |
+| **Harga/Bulan**    | Gratis | Rp 99.000 | Rp 199.000 |
+| **Kredit/Bulan**   | 10     | 200       | 500        |
+| **Max Resolusi**   | 720p   | 1080p     | 4K         |
+| **Watermark**      | Ya     | Tidak     | Tidak      |
+| **Priority Queue** | Tidak  | Ya        | Ya         |
+
+> **Catatan**: Model subscription telah dihapus. Pricing sekarang berbasis kredit (credit-based) dengan paket yang fleksibel.
 
 ---
 

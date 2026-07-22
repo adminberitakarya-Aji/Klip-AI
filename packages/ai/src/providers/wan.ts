@@ -107,20 +107,18 @@ export class WanProvider extends BaseProvider {
   }
 
   private getEndpoint(type: GenerationType): string {
-    const endpoints: Record<GenerationType, string> = {
+    // Only define endpoints for types that Wan supports
+    const endpoints: Partial<Record<GenerationType, string>> = {
       [GenerationType.TEXT_TO_VIDEO]: "/api/v1/text2video",
       [GenerationType.IMAGE_TO_VIDEO]: "/api/v1/image2video",
-      [GenerationType.VIDEO_TO_VIDEO]: "/api/v1/video2video",
       [GenerationType.TEXT_TO_IMAGE]: "/api/v1/text2image",
-      [GenerationType.IMAGE_TO_IMAGE]: "/api/v1/image2image",
-      [GenerationType.MOTION_CONTROL]: "/api/v1/motion-control",
       // Phase 11.5: Advanced Generation Modes (Wan may support limited)
       [GenerationType.VIDEO_TO_VIDEO_STYLE_TRANSFER]: "/api/v1/style-transfer",
       [GenerationType.INPAINTING_OUTPAINTING]: "/api/v1/inpainting-outpainting",
       [GenerationType.DEPTH_NORMAL_CONTROL]: "/api/v1/depth-normal-control",
       [GenerationType.MULTI_SHOT_STORYBOARD]: "/api/v1/multi-shot-storyboard",
     };
-    return endpoints[type];
+    return endpoints[type] || "/generate";
   }
 
   private buildPayload(request: GenerationRequest): Record<string, unknown> {
@@ -129,26 +127,19 @@ export class WanProvider extends BaseProvider {
 
     if (options) {
       const opts = options as Record<string, unknown>;
-      Object.entries(opts).forEach(([key, value]) => {
-        const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        payload[snakeKey] = value;
-      });
+      // Use base class shared logic
+      const shared = this.buildSharedPayload(request, opts);
+      Object.assign(payload, shared.payload);
 
-      // Handle reference images with roles/weights (NEW - Phase 11.1)
-      // Wan has limited support - only pass basic image_urls
-      if (opts.referenceImages && Array.isArray(opts.referenceImages)) {
-        const refImages = opts.referenceImages as ReferenceImage[];
-        // Only pass URLs for Wan (no role/weight support)
-        payload.image_urls = refImages.map((ref) => ref.url);
+      // Wan has limited support - only pass basic image_urls for reference images
+      if (shared.referenceImages) {
+        payload.image_urls = shared.referenceImages.map((ref) => ref.url);
       }
 
-      // Consistency config not supported by Wan - silently ignore
-
       // Handle camera control (NEW - Phase 11.2) - limited support, pass through
-      if (opts.cameraControl) {
-        const camera = opts.cameraControl as CameraControlConfig;
+      if (shared.cameraControl) {
         payload.camera_control = {
-          keyframes: camera.keyframes.map((kf) => ({
+          keyframes: shared.cameraControl.keyframes.map((kf) => ({
             time: kf.time,
             position: kf.position,
             rotation: kf.rotation,
@@ -156,15 +147,16 @@ export class WanProvider extends BaseProvider {
             ...(kf.target && { target: kf.target }),
             ...(kf.easing && { easing: kf.easing }),
           })),
-          ...(camera.interpolation && { interpolation: camera.interpolation }),
+          ...(shared.cameraControl.interpolation && {
+            interpolation: shared.cameraControl.interpolation,
+          }),
         };
       }
 
       // Handle motion brush (NEW - Phase 11.2) - limited support
-      if (opts.motionBrush) {
-        const brush = opts.motionBrush as MotionBrushConfig;
+      if (shared.motionBrush) {
         payload.motion_brush = {
-          strokes: brush.strokes.map((stroke) => ({
+          strokes: shared.motionBrush.strokes.map((stroke) => ({
             id: stroke.id,
             mask: stroke.mask,
             motion_vector: stroke.motionVector,
@@ -173,14 +165,13 @@ export class WanProvider extends BaseProvider {
             ...(stroke.easing && { easing: stroke.easing }),
             ...(stroke.timeRange && { time_range: stroke.timeRange }),
           })),
-          ...(brush.globalStrength !== undefined && {
-            global_strength: brush.globalStrength,
+          ...(shared.motionBrush.globalStrength !== undefined && {
+            global_strength: shared.motionBrush.globalStrength,
           }),
         };
       }
 
-      // Handle physics config (NEW - Phase 11.2) - not supported by Wan
-      // Silently ignore for now
+      // Physics config not supported by Wan - silently ignore
 
       // ============================================
       // PHASE 11.5: Advanced Generation Modes (Limited support)

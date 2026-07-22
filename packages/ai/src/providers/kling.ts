@@ -135,15 +135,13 @@ export class KlingProvider extends BaseProvider {
 
     if (options) {
       const opts = options as Record<string, unknown>;
-      Object.entries(opts).forEach(([key, value]) => {
-        const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
-        payload[snakeKey] = value;
-      });
+      // Use base class shared logic
+      const shared = this.buildSharedPayload(request, opts);
+      Object.assign(payload, shared.payload);
 
       // Handle reference images with roles/weights (NEW - Phase 11.1)
-      if (opts.referenceImages && Array.isArray(opts.referenceImages)) {
-        const refImages = opts.referenceImages as ReferenceImage[];
-        payload.reference_images = refImages.map((ref) => ({
+      if (shared.referenceImages) {
+        payload.reference_images = shared.referenceImages.map((ref) => ({
           url: ref.url,
           role: ref.role,
           weight: ref.weight,
@@ -153,25 +151,23 @@ export class KlingProvider extends BaseProvider {
       }
 
       // Handle consistency config (NEW - Phase 11.1)
-      if (opts.consistency) {
-        const consistency = opts.consistency as ConsistencyConfig;
-        payload.identity_preservation = consistency.identityPreservation;
-        if (consistency.referenceStrength !== undefined) {
-          payload.reference_strength = consistency.referenceStrength;
+      if (shared.consistency) {
+        payload.identity_preservation = shared.consistency.identityPreservation;
+        if (shared.consistency.referenceStrength !== undefined) {
+          payload.reference_strength = shared.consistency.referenceStrength;
         }
-        if (consistency.consistencyFrames !== undefined) {
-          payload.consistency_frames = consistency.consistencyFrames;
+        if (shared.consistency.consistencyFrames !== undefined) {
+          payload.consistency_frames = shared.consistency.consistencyFrames;
         }
-        if (consistency.blendMode) {
-          payload.blend_mode = consistency.blendMode;
+        if (shared.consistency.blendMode) {
+          payload.blend_mode = shared.consistency.blendMode;
         }
       }
 
       // Handle camera control (NEW - Phase 11.2)
-      if (opts.cameraControl) {
-        const camera = opts.cameraControl as CameraControlConfig;
+      if (shared.cameraControl) {
         payload.camera_control = {
-          keyframes: camera.keyframes.map((kf) => ({
+          keyframes: shared.cameraControl.keyframes.map((kf) => ({
             time: kf.time,
             position: kf.position,
             rotation: kf.rotation,
@@ -179,21 +175,34 @@ export class KlingProvider extends BaseProvider {
             ...(kf.target && { target: kf.target }),
             ...(kf.easing && { easing: kf.easing }),
           })),
-          ...(camera.interpolation && { interpolation: camera.interpolation }),
-          ...(camera.defaultFov && { default_fov: camera.defaultFov }),
-          ...(camera.defaultNear && { default_near: camera.defaultNear }),
-          ...(camera.defaultFar && { default_far: camera.defaultFar }),
-          ...(camera.shake && { shake: camera.shake }),
-          ...(camera.autoFrame && { auto_frame: camera.autoFrame }),
-          ...(camera.depthOfField && { depth_of_field: camera.depthOfField }),
+          ...(shared.cameraControl.interpolation && {
+            interpolation: shared.cameraControl.interpolation,
+          }),
+          ...(shared.cameraControl.defaultFov && {
+            default_fov: shared.cameraControl.defaultFov,
+          }),
+          ...(shared.cameraControl.defaultNear && {
+            default_near: shared.cameraControl.defaultNear,
+          }),
+          ...(shared.cameraControl.defaultFar && {
+            default_far: shared.cameraControl.defaultFar,
+          }),
+          ...(shared.cameraControl.shake && {
+            shake: shared.cameraControl.shake,
+          }),
+          ...(shared.cameraControl.autoFrame && {
+            auto_frame: shared.cameraControl.autoFrame,
+          }),
+          ...(shared.cameraControl.depthOfField && {
+            depth_of_field: shared.cameraControl.depthOfField,
+          }),
         };
       }
 
       // Handle motion brush (NEW - Phase 11.2)
-      if (opts.motionBrush) {
-        const brush = opts.motionBrush as MotionBrushConfig;
+      if (shared.motionBrush) {
         payload.motion_brush = {
-          strokes: brush.strokes.map((stroke) => ({
+          strokes: shared.motionBrush.strokes.map((stroke) => ({
             id: stroke.id,
             mask: stroke.mask,
             motion_vector: stroke.motionVector,
@@ -202,22 +211,21 @@ export class KlingProvider extends BaseProvider {
             ...(stroke.easing && { easing: stroke.easing }),
             ...(stroke.timeRange && { time_range: stroke.timeRange }),
           })),
-          ...(brush.globalStrength !== undefined && {
-            global_strength: brush.globalStrength,
+          ...(shared.motionBrush.globalStrength !== undefined && {
+            global_strength: shared.motionBrush.globalStrength,
           }),
-          ...(brush.useOpticalFlow !== undefined && {
-            use_optical_flow: brush.useOpticalFlow,
+          ...(shared.motionBrush.useOpticalFlow !== undefined && {
+            use_optical_flow: shared.motionBrush.useOpticalFlow,
           }),
-          ...(brush.temporalSmoothness !== undefined && {
-            temporal_smoothness: brush.temporalSmoothness,
+          ...(shared.motionBrush.temporalSmoothness !== undefined && {
+            temporal_smoothness: shared.motionBrush.temporalSmoothness,
           }),
         };
       }
 
       // Handle physics config (NEW - Phase 11.2)
-      if (opts.physics) {
-        const physics = opts.physics as PhysicsConfig;
-        payload.physics = physics;
+      if (shared.physics) {
+        payload.physics = shared.physics;
       }
 
       // ============================================

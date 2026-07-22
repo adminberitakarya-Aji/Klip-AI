@@ -109,6 +109,7 @@ model Generation {
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([userId, status])
   @@map("generations")
 }
 
@@ -167,12 +168,6 @@ enum UpscalerJobStatus {
 enum Role {
   USER
   ADMIN
-}
-
-enum Subscription {
-  FREE
-  PRO
-  UMKM
 }
 
 enum GenerationType {

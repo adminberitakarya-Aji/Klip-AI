@@ -8,8 +8,10 @@ import {
 import { generationService } from "@klipai/ai/services/generation-service";
 import { generationRequestSchema } from "@klipai/core/schemas";
 import { prisma } from "@klipai/db/client";
+import { CreditTransactionType, PaymentStatus } from "@klipai/db";
 import { GenerationType } from "@klipai/core/types";
 import { captureError } from "@/lib/error-capture";
+import { refundCredits } from "@/lib/credits";
 
 type TransactionClient = Omit<
   typeof prisma,
@@ -100,7 +102,7 @@ export async function POST(
       );
     }
 
-    // Atomic credit check, decrement, and generation creation in a single transaction
+    // Atomic credit check, decrement, generation creation, and transaction record in a single transaction
     const result = await prisma.$transaction(async (tx: TransactionClient) => {
       // Check and decrement credits atomically
       const updatedUser = await tx.user.update({
@@ -112,6 +114,17 @@ export async function POST(
       if (!updatedUser) {
         throw new Error("INSUFFICIENT_CREDITS");
       }
+
+      // Create credit transaction record for the deduction
+      const creditTransaction = await tx.creditTransaction.create({
+        data: {
+          userId: sessionUser.id,
+          amount: 1,
+          type: CreditTransactionType.USAGE,
+          description: `Generation: ${type}`,
+          paymentStatus: PaymentStatus.COMPLETED,
+        },
+      });
 
       // Create generation record
       const generation = await tx.generation.create({
@@ -135,13 +148,23 @@ export async function POST(
           physics: (parsed.data as any).physics as any,
           // NEW: Store post-processing pipeline (Phase 11.3)
           postProcessing: (parsed.data as any).postProcessing as any,
+          // Store credit transaction ID for potential refund
+          metadata: {
+            creditTransactionId: creditTransaction.id,
+            generationType: type,
+          } as any,
         },
       });
 
-      return { generationId: generation.id, credits: updatedUser.credits };
+      return {
+        generationId: generation.id,
+        credits: updatedUser.credits,
+        creditTransactionId: creditTransaction.id,
+      };
     });
 
     // Queue for async processing using the generation that was already created in the transaction
+    // Note: processGeneration runs asynchronously after response is sent
     generationService
       .processGeneration(result.generationId, {
         brief: parsed.data.prompt,
@@ -152,11 +175,18 @@ export async function POST(
         referenceImages: parsed.data.referenceImages,
         userPreferences: parsed.data.options as any,
       })
-      .catch((e) =>
+      .catch(async (e) => {
         captureError(`POST /api/generate/${type}`, e, {
           userId: sessionUser?.id,
-        }),
-      );
+        });
+        // Refund credits when generation fails
+        await refundCredits(
+          sessionUser.id,
+          1,
+          result.creditTransactionId,
+          `Generation failed: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      });
 
     return NextResponse.json({
       success: true,
