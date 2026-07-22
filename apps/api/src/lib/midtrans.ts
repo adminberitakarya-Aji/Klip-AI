@@ -266,6 +266,23 @@ export async function handleMidtransNotification(
       newStatus = PaymentStatus.PROCESSING;
   }
 
+  // Read existing metadata first so the update below can merge into it
+  // instead of clobbering fields set at transaction-creation time
+  // (packageSlug, packageName, credits, priceIdr, userEmail, etc).
+  // This read is safe to do outside the atomic update: it has no bearing
+  // on the double-credit guard, which is enforced entirely by the
+  // `paymentStatus: { not: COMPLETED }` condition in the updateMany below.
+  const existingForMetadata = await prisma.creditTransaction.findFirst({
+    where: { orderId: order_id },
+    select: { metadata: true },
+  });
+  const mergedMetadata = {
+    ...((existingForMetadata?.metadata as object) || {}),
+    midtransStatus: transaction_status,
+    midtransTransactionId: notification.transaction_id,
+    processedAt: new Date().toISOString(),
+  };
+
   // Atomic update: only update if NOT already COMPLETED
   // This prevents race conditions where two concurrent webhooks both try to process
   const updated = await prisma.creditTransaction.updateMany({
@@ -275,11 +292,7 @@ export async function handleMidtransNotification(
     },
     data: {
       paymentStatus: newStatus,
-      metadata: {
-        midtransStatus: transaction_status,
-        midtransTransactionId: notification.transaction_id,
-        processedAt: new Date().toISOString(),
-      },
+      metadata: mergedMetadata,
     },
   });
 
