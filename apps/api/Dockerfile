@@ -19,17 +19,19 @@ WORKDIR /app
 # Copy root workspace manifests
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc* ./
 
-# Copy ALL package.json files preserving directory structure
-# This is required for pnpm to correctly resolve the workspace graph
-COPY packages/db/package.json ./packages/db/package.json
-COPY packages/ai/package.json ./packages/ai/package.json
-COPY packages/config/package.json ./packages/config/package.json
-COPY packages/core/package.json ./packages/core/package.json
+# Copy ALL package.json files, preserving directory structure so pnpm
+# can resolve the workspace graph before installing
+COPY packages/db/package.json       ./packages/db/package.json
+COPY packages/ai/package.json       ./packages/ai/package.json
+COPY packages/config/package.json   ./packages/config/package.json
+COPY packages/core/package.json     ./packages/core/package.json
 COPY packages/tsconfig/package.json ./packages/tsconfig/package.json
-COPY packages/ui/package.json ./packages/ui/package.json
-COPY apps/api/package.json ./apps/api/package.json
+COPY packages/ui/package.json       ./packages/ui/package.json
+COPY apps/api/package.json          ./apps/api/package.json
+COPY apps/web/package.json          ./apps/web/package.json
 
 # Install all dependencies (including devDeps for prisma CLI + tsc)
+# pnpm install will set up the .pnpm store + symlinks correctly
 RUN pnpm install --frozen-lockfile
 
 # Stage 2: Build
@@ -46,19 +48,19 @@ WORKDIR /app
 
 # Accept DATABASE_URL as build arg (needed for prisma generate)
 ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL:-"postgresql://placeholder:placeholder@localhost:5432/placeholder"}
+# prisma generate only needs a syntactically valid URL — no real DB needed
+ENV DATABASE_URL=${DATABASE_URL:-"postgresql://user:pass@localhost:5432/db"}
 
-# Copy dependencies from deps stage
+# Copy the ENTIRE node_modules (including .pnpm store & symlinks) from deps
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/db/node_modules ./packages/db/node_modules
 
-# Copy full source
+# Copy full monorepo source
 COPY . .
 
-# Generate Prisma Client (DATABASE_URL only needs to be syntactically valid for generate)
+# Generate Prisma Client
 RUN pnpm --filter @klipai/db db:generate
 
-# Build Next.js application (standalone mode controlled by env var)
+# Build Next.js application with standalone output for Docker
 ENV NEXT_OUTPUT_STANDALONE=true
 RUN pnpm --filter @klipai/api build
 
@@ -80,15 +82,16 @@ RUN adduser --system --uid 1001 nextjs
 ENV FFMPEG_PATH=/usr/bin/ffmpeg
 ENV NODE_ENV=production
 
-# Copy built standalone application
+# The standalone output bundles everything needed to run the server.
+# The structure is: .next/standalone/apps/api/server.js
 COPY --from=builder /app/apps/api/.next/standalone ./
-COPY --from=builder /app/apps/api/.next/static ./apps/api/.next/static
-COPY --from=builder /app/apps/api/public ./apps/api/public
+COPY --from=builder /app/apps/api/.next/static     ./apps/api/.next/static
+COPY --from=builder /app/apps/api/public           ./apps/api/public
 
 # Copy Prisma schema for runtime migrations
-COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
-# Copy generated Prisma client
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/packages/db/prisma        ./packages/db/prisma
+# Copy generated Prisma engine binaries
+COPY --from=builder /app/node_modules/.prisma      ./node_modules/.prisma
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
