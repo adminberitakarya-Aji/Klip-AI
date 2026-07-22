@@ -23,7 +23,10 @@ Go to repository **Settings > Secrets and variables > Actions** and add:
 
 ```bash
 # Database (Supabase)
-DATABASE_URL=postgresql://postgres:xxx@aws-xxx.supabase.co:5432/postgres
+# Runtime — Connection Pooling (Transaction mode), port 6543, ?pgbouncer=true
+DATABASE_URL=postgresql://postgres:xxx@aws-xxx.pooler.supabase.com:6543/postgres?pgbouncer=true
+# Prisma CLI only (db push/migrate) — Direct connection, port 5432, no pgbouncer
+DIRECT_URL=postgresql://postgres:xxx@aws-xxx.supabase.co:5432/postgres
 
 # Auth
 NEXTAUTH_SECRET=your-32-character-minimum-secret-key
@@ -64,12 +67,15 @@ TURBO_TEAM=your-team-name
 ### 2. Supabase Setup
 
 1. Create new project at https://supabase.com
-2. Get connection string from **Settings > Connection Pooling**
-3. Run migrations:
+2. Get **both** connection strings from **Settings > Database > Connection string**:
+   - **Transaction pooler** (port 6543, `?pgbouncer=true`) → `DATABASE_URL` — used by the running app
+   - **Direct connection** (port 5432, no pgbouncer) → `DIRECT_URL` — used only by Prisma CLI (`db:push`/`db:migrate`), since PgBouncer's transaction mode doesn't reliably support DDL statements
+3. Set both `DATABASE_URL` and `DIRECT_URL` in `apps/api/.env`, `apps/web/.env`, and `packages/db/.env` (Prisma CLI commands run from `packages/db` and read `.env` there, not from the apps' `.env` files)
+4. Run migrations:
    ```bash
    pnpm --filter @klipai/db db:push
    ```
-4. Seed credit packages:
+5. Seed credit packages:
    ```bash
    cd packages/db && npx tsx prisma/seed-credits.ts
    ```

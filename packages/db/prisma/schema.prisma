@@ -3,8 +3,17 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // Runtime connection (used by PrismaClient in the app) — point this at
+  // Supabase's connection pooler (port 6543, includes ?pgbouncer=true).
+  url       = env("DATABASE_URL")
+  // Used ONLY by Prisma CLI commands (db push, migrate dev/deploy).
+  // Point this at Supabase's direct connection (port 5432, no pgbouncer).
+  // PgBouncer's transaction pooling mode doesn't reliably support the DDL
+  // statements these commands issue (ALTER TABLE, CREATE INDEX, etc.),
+  // so Prisma needs a direct, non-pooled connection for schema changes.
+  // See docs/deployment-guide.md for where to find both URLs in Supabase.
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
