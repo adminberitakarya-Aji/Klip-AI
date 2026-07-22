@@ -5,7 +5,8 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   // Standalone output diperlukan untuk Docker deployment
-  output: "standalone",
+  output:
+    process.env.NEXT_OUTPUT_STANDALONE === "true" ? "standalone" : undefined,
   experimental: {
     optimizePackageImports: [
       "@klipai/ui",

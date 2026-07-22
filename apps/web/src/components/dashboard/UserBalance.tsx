@@ -5,7 +5,8 @@ import { Coins, TrendingUp, Loader2 } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
 import { cn } from "@klipai/ui/lib/utils";
-import { Skeleton, ErrorState } from "@klipai/ui/components/state-components";
+import { ErrorState } from "@klipai/ui/components/state-components";
+import { Skeleton } from "@klipai/ui/components/skeleton";
 
 interface UserBalanceData {
   balance: number;

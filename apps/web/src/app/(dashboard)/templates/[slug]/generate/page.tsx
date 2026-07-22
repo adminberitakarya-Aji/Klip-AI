@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -331,7 +331,7 @@ function ProgressSection({ job }: { job: JobData }) {
   );
 }
 
-export default function TemplateGeneratePage() {
+function TemplateGenerateContent() {
   const params = useParams();
   const searchParams = useSearchParams();
   const slug = params.slug as string;
@@ -638,5 +638,13 @@ export default function TemplateGeneratePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function TemplateGeneratePage() {
+  return (
+    <Suspense fallback={<LoadingScreen />}>
+      <TemplateGenerateContent />
+    </Suspense>
   );
 }

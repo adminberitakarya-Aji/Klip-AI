@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { motion } from "framer-motion";
 import { Coins, Shield, Zap } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
@@ -50,7 +51,15 @@ export default function CreditsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <CreditPurchase />
+            <Suspense
+              fallback={
+                <div className="text-white text-center py-8">
+                  Loading credits...
+                </div>
+              }
+            >
+              <CreditPurchase />
+            </Suspense>
           </motion.div>
         </div>
       </div>

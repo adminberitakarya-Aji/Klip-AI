@@ -75,12 +75,8 @@ export default async function TemplatePage({ params }: PageProps) {
               updatedAt: s.updatedAt.toISOString(),
             })),
           }}
-          onCustomize={() => {
-            window.location.href = `/templates/${slug}/customize`;
-          }}
-          onGenerate={() => {
-            window.location.href = `/templates/${slug}/generate`;
-          }}
+          customizeUrl={`/templates/${slug}/customize`}
+          generateUrl={`/templates/${slug}/generate`}
         />
       </div>
     </div>

@@ -1,3 +1,5 @@
+"use client";
+
 import dynamic from "next/dynamic";
 import { Nav } from "@/components/Nav";
 import { Filmstrip } from "@/components/Filmstrip";

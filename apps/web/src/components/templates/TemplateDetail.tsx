@@ -50,8 +50,10 @@ interface TemplateDetailProps {
     createdAt: string;
     updatedAt: string;
   };
-  onCustomize: () => void;
-  onGenerate: () => void;
+  onCustomize?: () => void;
+  onGenerate?: () => void;
+  customizeUrl?: string;
+  generateUrl?: string;
 }
 
 const formatLabels: Record<string, string> = {
@@ -78,7 +80,19 @@ export function TemplateDetail({
   template,
   onCustomize,
   onGenerate,
+  customizeUrl,
+  generateUrl,
 }: TemplateDetailProps) {
+  const handleCustomize = () => {
+    if (onCustomize) return onCustomize();
+    if (customizeUrl) window.location.href = customizeUrl;
+  };
+
+  const handleGenerate = () => {
+    if (onGenerate) return onGenerate();
+    if (generateUrl) window.location.href = generateUrl;
+  };
+
   const [activeTab, setActiveTab] = useState<"overview" | "shots" | "brandkit">(
     "overview",
   );
@@ -276,13 +290,13 @@ export function TemplateDetail({
             {/* Action Buttons Overlay */}
             <div className="absolute bottom-4 left-4 right-4 flex gap-3">
               <button
-                onClick={onCustomize}
+                onClick={handleCustomize}
                 className="flex-1 px-4 py-3 bg-white/90 text-gray-900 font-semibold rounded-lg hover:bg-white transition-colors shadow-lg"
               >
                 Kustomisasi & Gunakan
               </button>
               <button
-                onClick={onGenerate}
+                onClick={handleGenerate}
                 className="flex-1 px-4 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors shadow-lg"
               >
                 Generate Langsung
@@ -642,7 +656,7 @@ export function TemplateDetail({
             </p>
             <div className="space-y-3">
               <button
-                onClick={onCustomize}
+                onClick={handleCustomize}
                 className="w-full px-4 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-colors text-center"
               >
                 Kustomisasi Lengkap
@@ -651,7 +665,7 @@ export function TemplateDetail({
                 </span>
               </button>
               <button
-                onClick={onGenerate}
+                onClick={handleGenerate}
                 className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center"
               >
                 Generate Cepat
