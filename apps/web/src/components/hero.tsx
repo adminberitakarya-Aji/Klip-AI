@@ -70,7 +70,7 @@ function HeroContent() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
         {/* 3D Accent - positioned as subtle background element */}
-        <div className="absolute inset-0 pointer-events-none hidden md:block">
+        <div className="absolute inset-0 hidden md:block">
           <CanvasProvider
             className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-full opacity-20"
             camera={{ position: [0, 0, 30], fov: 50 }}
