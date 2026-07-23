@@ -6,50 +6,13 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { CanvasProvider } from "./three/CanvasProvider";
 import { HeroScene } from "./three/HeroScene";
-import { gsap } from "gsap";
-import { useEffect, useRef } from "react";
+
+// Valid easing configurations
+const easeOutCubic = [0.34, 1.56, 0.64, 1];
 
 function HeroContent() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".hero-title",
-        { opacity: 0, y: 50 },
-        { opacity: 1, y: 0, duration: 1, ease: "power3.out" },
-      );
-      gsap.fromTo(
-        ".hero-subtitle",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.2, ease: "power3.out" },
-      );
-      gsap.fromTo(
-        ".hero-cta",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.4, ease: "power3.out" },
-      );
-      gsap.fromTo(
-        ".hero-badge",
-        { opacity: 0, scale: 0.9 },
-        {
-          opacity: 1,
-          scale: 1,
-          duration: 0.8,
-          delay: 0.6,
-          ease: "back.out(1.7)",
-        },
-      );
-    }, scrollRef);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
-    <section
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      ref={scrollRef}
-    >
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0 z-0">
         {/* Video Background - Full screen, no crop */}
@@ -84,13 +47,13 @@ function HeroContent() {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
         {/* Badge */}
         <motion.div
-          className="hero-badge inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{
             duration: 0.8,
             delay: 0.6,
-            ease: [0.34, 1.56, 0.64, 1],
+            ease: easeOutCubic,
           }}
         >
           <span className="relative flex h-2 w-2">
@@ -104,10 +67,10 @@ function HeroContent() {
 
         {/* Title */}
         <motion.h1
-          className="hero-title text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.05] mb-6"
+          className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.05] mb-6"
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: "power3.out" }}
+          transition={{ duration: 1, ease: easeOutCubic }}
         >
           <span className="block">Generate</span>
           <span className="block bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
@@ -118,10 +81,10 @@ function HeroContent() {
 
         {/* Subtitle */}
         <motion.p
-          className="hero-subtitle text-lg sm:text-xl lg:text-2xl text-neutral-400 max-w-3xl mx-auto mb-10 leading-relaxed"
+          className="text-lg sm:text-xl lg:text-2xl text-neutral-400 max-w-3xl mx-auto mb-10 leading-relaxed"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2, ease: "power3.out" }}
+          transition={{ duration: 1, delay: 0.2, ease: easeOutCubic }}
         >
           Transform text, images, and videos into stunning cinematic content
           using
@@ -134,10 +97,10 @@ function HeroContent() {
 
         {/* CTA Buttons */}
         <motion.div
-          className="hero-cta flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: "power3.out" }}
+          transition={{ duration: 1, delay: 0.4, ease: easeOutCubic }}
         >
           <Button
             size="lg"
@@ -168,7 +131,7 @@ function HeroContent() {
           className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.6, ease: "power3.out" }}
+          transition={{ duration: 1, delay: 0.6, ease: easeOutCubic }}
         >
           <FeatureItem
             icon={Zap}
@@ -197,7 +160,7 @@ function HeroContent() {
           className="mt-16 flex flex-wrap items-center justify-center gap-8 text-neutral-500 text-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8, ease: "power3.out" }}
+          transition={{ duration: 0.8, delay: 0.8, ease: easeOutCubic }}
         >
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500" />
