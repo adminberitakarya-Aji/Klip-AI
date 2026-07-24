@@ -1,233 +1,195 @@
 "use client";
 
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@klipai/ui/components/button";
-import { ArrowRight, Sparkles, Zap, Layers } from "lucide-react";
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { CanvasProvider } from "./three/CanvasProvider";
-import { HeroScene } from "./three/HeroScene";
+import { ArrowRight, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Valid easing configurations
 const easeOutCubic = [0.34, 1.56, 0.64, 1];
 
-function HeroContent() {
+const videos = [
+  {
+    id: 0,
+    src: "/assets/Woman_in_red_gown_jungle.mp4",
+    prompt:
+      "Pengambilan gambar sinematik seorang wanita bergaun merah berjalan di hutan lebat, 4K",
+    label: "Text to Video",
+    accentColor: "text-purple-300",
+  },
+  {
+    id: 1,
+    src: "/assets/Dieng_Plateau_dawn_landscape_202607242207.mp4",
+    prompt:
+      "Lanskap Dataran Tinggi Dieng saat fajar, kabut pagi, nuansa sinematik Indonesia, 4K",
+    label: "Image to Video",
+    accentColor: "text-cyan-300",
+  },
+  {
+    id: 2,
+    src: "/assets/Gargoyle_leaps,_Thalia_unleashes…_202607242237.mp4",
+    prompt:
+      "Gargoyle melompat, Thalia melepaskan kekuatan ajaib, pencahayaan dramatis, cinematic VFX, 4K",
+    label: "Motion Control",
+    accentColor: "text-pink-300",
+  },
+];
+
+export function Hero() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+
+  const active = videos[activeIndex];
+
+  // When active video ends → fade out → switch to next
+  const handleEnded = useCallback(
+    (endedIndex: number) => {
+      if (endedIndex !== activeIndex) return;
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setActiveIndex((prev) => (prev + 1) % videos.length);
+        setIsTransitioning(false);
+      }, 400);
+    },
+    [activeIndex],
+  );
+
+  // Play the active video and pause all others
+  useEffect(() => {
+    videoRefs.current.forEach((vid, i) => {
+      if (!vid) return;
+      if (i === activeIndex) {
+        vid.muted = isMuted;
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      } else {
+        vid.pause();
+        vid.currentTime = 0;
+      }
+    });
+  }, [activeIndex, isMuted]);
+
+  const toggleMute = () => {
+    const vid = videoRefs.current[activeIndex];
+    if (vid) {
+      vid.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
+
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Effects */}
+    <section className="relative w-full h-[100dvh] min-h-[580px] sm:min-h-[650px] flex flex-col justify-between overflow-hidden bg-black">
+      {/* Video Layers — all mounted, only active is visible */}
       <div className="absolute inset-0 z-0">
-        {/* Video Background - Full screen, no crop */}
-        <div className="absolute inset-0 overflow-hidden">
+        {videos.map((video, i) => (
           <video
-            src="/assets/Woman_in_red_gown_jungle.mp4"
-            autoPlay
+            key={video.id}
+            ref={(el) => {
+              videoRefs.current[i] = el;
+            }}
+            src={video.src}
+            autoPlay={i === 0}
             muted
-            loop
             playsInline
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-auto h-auto max-w-full max-h-full object-contain"
-            style={{ minWidth: "100%", minHeight: "100%" }}
+            onEnded={() => handleEnded(i)}
+            className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+            style={{ opacity: i === activeIndex && !isTransitioning ? 1 : 0 }}
           />
-          <div className="absolute inset-0 bg-black/60" />
-        </div>
+        ))}
 
-        {/* Gradient overlays for readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
-
-        {/* 3D Accent - positioned as subtle background element */}
-        <div className="absolute inset-0 hidden md:block">
-          <CanvasProvider
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 h-full opacity-20"
-            camera={{ position: [0, 0, 30], fov: 50 }}
-          >
-            <HeroScene />
-          </CanvasProvider>
-        </div>
+        {/* Minimal Vignette & Gradients */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-black/90 pointer-events-none z-10" />
       </div>
 
-      {/* Foreground Content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        {/* Badge */}
-        <motion.div
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm mb-8"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{
-            duration: 0.8,
-            delay: 0.6,
-            ease: easeOutCubic,
-          }}
-        >
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
-          </span>
-          <span className="text-sm font-medium text-purple-300">
-            New: Motion Control & 4K Output
-          </span>
-        </motion.div>
-
-        {/* Title */}
+      {/* Main Content */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 text-center max-w-5xl mx-auto pt-20 sm:pt-16">
         <motion.h1
-          className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold tracking-tight leading-[1.05] mb-6"
-          initial={{ opacity: 0, y: 50 }}
+          className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] sm:leading-[1.1] drop-shadow-2xl mb-6 sm:mb-8 italic"
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, ease: easeOutCubic }}
+          transition={{ duration: 0.9, delay: 0.1, ease: easeOutCubic }}
         >
-          <span className="block">Generate</span>
-          <span className="block bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
-            Cinematic AI Videos
+          Buat Video AI Sinematik <br className="hidden sm:block" />
+          <span className="not-italic font-sans font-bold bg-gradient-to-r from-white via-purple-100 to-cyan-200 bg-clip-text text-transparent">
+            dalam Hitungan Detik
           </span>
-          <span className="block">in Seconds</span>
         </motion.h1>
 
-        {/* Subtitle */}
-        <motion.p
-          className="text-lg sm:text-xl lg:text-2xl text-neutral-400 max-w-3xl mx-auto mb-10 leading-relaxed"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.2, ease: easeOutCubic }}
-        >
-          Transform text, images, and videos into stunning cinematic content
-          using
-          <span className="text-white font-medium">
-            state-of-the-art generative AI models
-          </span>
-          . Text-to-video, image-to-video, video-to-video, and motion
-          control—all in one platform.
-        </motion.p>
-
-        {/* CTA Buttons */}
         <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.4, ease: easeOutCubic }}
+          className="flex items-center gap-4"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.3, ease: easeOutCubic }}
         >
           <Button
             size="lg"
-            className="group gap-2 px-8 py-4 text-lg bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 shadow-lg shadow-purple-600/25 transition-all duration-300"
+            className="group gap-2.5 sm:gap-3 px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-lg rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-md shadow-xl hover:border-white/50 transition-all duration-300 hover:scale-105"
             asChild
           >
             <a href="/generate" className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5" />
-              Start Creating Free
-              <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-            </a>
-          </Button>
-          <Button
-            size="lg"
-            variant="outline"
-            className="gap-2 px-8 py-4 text-lg border-white/20 hover:border-white/40 hover:bg-white/5 transition-all duration-300"
-            asChild
-          >
-            <a href="/gallery" className="flex items-center gap-2">
-              <Layers className="h-5 w-5" />
-              View Gallery
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-purple-300" />
+              <span>Mulai Buat Video Gratis</span>
+              <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
             </a>
           </Button>
         </motion.div>
+      </div>
 
-        {/* Features Row */}
+      {/* Bottom Bar: Optimized Mobile Layout */}
+      <div className="relative z-10 px-3 sm:px-8 pb-5 sm:pb-8 flex items-center sm:items-end justify-between w-full max-w-7xl mx-auto gap-2 sm:gap-4">
+        {/* Spacer for desktop symmetry */}
+        <div className="w-11 flex-shrink-0 hidden sm:block" />
+
+        {/* Floating Prompt Pill */}
         <motion.div
-          className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+          className="flex-1 min-w-0 max-w-2xl mx-auto"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1, delay: 0.6, ease: easeOutCubic }}
+          transition={{ duration: 0.8, delay: 0.5, ease: easeOutCubic }}
         >
-          <FeatureItem
-            icon={Zap}
-            title="Text to Video"
-            desc="Generate from prompts"
-          />
-          <FeatureItem
-            icon={Layers}
-            title="Image to Video"
-            desc="Animate your images"
-          />
-          <FeatureItem
-            icon={ArrowRight}
-            title="Video to Video"
-            desc="Transform footage"
-          />
-          <FeatureItem
-            icon={Sparkles}
-            title="Motion Control"
-            desc="Precise camera paths"
-          />
+          <div className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-black/60 border border-white/15 backdrop-blur-lg shadow-2xl hover:border-white/25 transition-all duration-300">
+            <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </div>
+            <div className="text-left text-[11px] sm:text-sm text-white/90 overflow-hidden min-w-0 flex-1">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeIndex}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.35 }}
+                  className="truncate"
+                >
+                  <span
+                    className={`font-semibold mr-1 sm:mr-1.5 ${active.accentColor}`}
+                  >
+                    {active.label}:
+                  </span>
+                  <span className="text-white/80">{active.prompt}</span>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
         </motion.div>
 
-        {/* Trust Indicators */}
-        <motion.div
-          className="mt-16 flex flex-wrap items-center justify-center gap-8 text-neutral-500 text-sm"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8, ease: easeOutCubic }}
+        {/* Mute Button (Positioned on the Right) */}
+        <motion.button
+          onClick={toggleMute}
+          className="p-2.5 sm:p-3 rounded-full bg-black/60 border border-white/15 backdrop-blur-lg text-white/80 hover:text-white hover:border-white/30 hover:bg-black/80 transition-all duration-300 shadow-xl flex-shrink-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          title={isMuted ? "Buka Suara Video" : "Senyapkan Video"}
         >
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            No credit card required
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            30 free credits/month
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            Commercial use allowed
-          </span>
-          <span className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            Cancel anytime
-          </span>
-        </motion.div>
+          {isMuted ? (
+            <VolumeX className="h-4 w-4 sm:h-5 sm:w-5" />
+          ) : (
+            <Volume2 className="h-4 w-4 sm:h-5 sm:w-5" />
+          )}
+        </motion.button>
       </div>
-
-      {/* Scroll Indicator */}
-      <motion.div
-        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-neutral-500"
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-      >
-        <span className="text-xs uppercase tracking-widest">
-          Scroll to explore
-        </span>
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 14l-7 7m0 0l-7-7m7 7V3"
-          />
-        </svg>
-      </motion.div>
     </section>
   );
-}
-
-function FeatureItem({
-  icon: Icon,
-  title,
-  desc,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-300">
-      <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-        <Icon className="h-6 w-6 text-purple-400" />
-      </div>
-      <h3 className="font-semibold text-white">{title}</h3>
-      <p className="text-sm text-neutral-500">{desc}</p>
-    </div>
-  );
-}
-
-export function Hero() {
-  return <HeroContent />;
 }

@@ -1,232 +1,120 @@
-'use client';
+"use client";
 
-import { motion } from 'framer-motion';
-import { ArrowRight, Sparkles, Zap, Shield, Globe, Users } from 'lucide-react';
-import { Button } from '@klipai/ui/components/button';
-import { Card } from '@klipai/ui/components/card';
-
-const plans = [
-  {
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    description: 'Perfect for getting started',
-    credits: '30 credits/month',
-    maxResolution: '720p',
-    features: [
-      'Text-to-Video generation',
-      'Image-to-Video animation',
-      'Community models access',
-      'Standard queue priority',
-      'Watermarked outputs',
-      'Personal use license',
-    ],
-    cta: 'Start Free',
-    popular: false,
-    gradient: 'from-neutral-800 to-neutral-900',
-    border: 'border-neutral-800',
-  },
-  {
-    name: 'Pro',
-    price: '$29',
-    period: '/month',
-    description: 'For serious creators',
-    credits: '1,000 credits/month',
-    maxResolution: '4K',
-    features: [
-      'Everything in Free',
-      'Video-to-Video transformation',
-      'Motion Control (camera paths)',
-      'Priority queue (2x faster)',
-      'No watermarks',
-      'Commercial license',
-      'Private generations',
-      'API access (beta)',
-      '4K upscaling included',
-    ],
-    cta: 'Go Pro',
-    popular: true,
-    gradient: 'from-purple-600/20 via-purple-900/10 to-pink-600/20',
-    border: 'border-purple-500/30',
-  },
-  {
-    name: 'UMKM',
-    price: '$99',
-    period: '/month',
-    description: 'For teams & businesses',
-    credits: '5,000 credits/month',
-    maxResolution: '4K',
-    features: [
-      'Everything in Pro',
-      '5 team seats included',
-      'Custom model fine-tuning',
-      'Dedicated GPU priority',
-      'SLA & priority support',
-      'White-label options',
-      'Advanced analytics',
-      'SSO/SAML auth',
-      'Custom integrations',
-    ],
-    cta: 'Contact Sales',
-    popular: false,
-    gradient: 'from-cyan-600/20 via-cyan-900/10 to-blue-600/20',
-    border: 'border-cyan-500/30',
-  },
-];
+import { motion } from "framer-motion";
+import { ArrowRight, Sparkles, Zap, Film } from "lucide-react";
+import { Button } from "@klipai/ui/components/button";
 
 export function CTA() {
   return (
-    <section className="relative py-24 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-8 overflow-hidden">
-      <span className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-600/10 via-transparent to-pink-600/10" />
-      
-      <div className="max-w-7xl mx-auto relative z-10">
-        {/* Header */}
+    <section className="relative py-16 sm:py-32 lg:py-40 px-4 sm:px-6 lg:px-8 bg-black overflow-hidden">
+      {/* Grid texture */}
+      <div
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)`,
+          backgroundSize: "60px 60px",
+        }}
+      />
+
+      {/* Ambient glows */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-purple-600/15 blur-[180px] rounded-full pointer-events-none" />
+      <div className="absolute top-0 left-0 w-64 h-64 bg-pink-600/10 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-64 h-64 bg-cyan-600/8 blur-[100px] rounded-full pointer-events-none" />
+
+      {/* Top border glow line */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+
+      <div className="max-w-5xl mx-auto relative z-10 text-center">
         <motion.div
-          className="text-center mb-20"
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <span className="inline-flex items-center gap-3 mb-4">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
-            </span>
-            <span className="text-xs uppercase tracking-widest text-neutral-400">Choose your plan</span>
-          </span>
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6">
-            Start creating{' '}
-            <span className="bg-gradient-to-r from-white via-purple-200 to-cyan-200 bg-clip-text text-transparent">
-              today
+          {/* Badge */}
+          <motion.span
+            className="inline-flex items-center gap-2 px-3.5 py-1 sm:px-4 sm:py-1.5 rounded-full bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30 text-[11px] sm:text-xs font-semibold uppercase tracking-widest text-purple-300 mb-6 sm:mb-8 backdrop-blur-md shadow-lg"
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+            Dapatkan 10 Free Credits Instant
+            <Sparkles className="h-3.5 w-3.5 text-pink-400" />
+          </motion.span>
+
+          {/* Headline */}
+          <h2 className="text-3xl sm:text-5xl lg:text-7xl font-extrabold tracking-tight text-white mb-4 sm:mb-6 leading-tight sm:leading-[1.1]">
+            Siap membuat video AI <br className="hidden sm:block" />
+            <span className="relative inline-block">
+              <span className="bg-gradient-to-r from-purple-300 via-pink-300 to-cyan-300 bg-clip-text text-transparent">
+                berkualitas sinematik?
+              </span>
+              {/* Underline glow */}
+              <span className="absolute -bottom-2 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 via-pink-500 to-cyan-500 rounded-full opacity-60" />
             </span>
           </h2>
-          <p className="text-lg sm:text-xl text-neutral-400 max-w-3xl mx-auto leading-relaxed">
-            No credit card required. 30 free credits every month. Upgrade anytime for more power.
+
+          {/* Subtext */}
+          <p className="text-base sm:text-xl text-neutral-400 max-w-2xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
+            Daftar sekarang tanpa kartu kredit.{" "}
+            <span className="text-white font-medium">
+              Nikmati 10 kredit gratis
+            </span>{" "}
+            langsung di akun Anda dan buat video AI pertama dalam hitungan
+            detik.
           </p>
-        </motion.div>
 
-        {/* Pricing Cards */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: '-100px' }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          {plans.map((plan, index) => (
-            <motion.div
-              key={plan.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 + index * 0.1 }}
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <Button
+              size="lg"
+              className="w-full sm:w-auto group gap-2.5 sm:gap-3 px-6 sm:px-10 py-5 sm:py-7 text-sm sm:text-lg rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-2xl shadow-purple-600/40 transition-all duration-300 hover:scale-105 hover:shadow-purple-500/50"
+              asChild
             >
-              <PricingCard plan={plan} />
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Features Comparison */}
-        <motion.div
-          className="max-w-4xl mx-auto"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-        >
-          <h3 className="text-2xl sm:text-3xl font-bold text-center mb-12">
-            Why creators choose Klip AI
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { icon: Sparkles, title: 'Multi-Model Pipeline', desc: 'Access SVD, Gen-2, AnimateDiff, MotionCtrl & more in one place' },
-              { icon: Zap, title: 'Lightning Fast', desc: 'Dedicated GPU clusters with priority queue for Pro/UMKM plans' },
-              { icon: Shield, title: 'Commercial Ready', desc: 'Full commercial license, no watermarks, private generations' },
-              { icon: Globe, title: 'Global CDN', desc: 'Instant delivery worldwide with edge caching' },
-              { icon: Users, title: 'Team Workspaces', desc: 'Collaborate with shared credits, projects & templates' },
-              { icon: ArrowRight, title: 'API & Integrations', desc: 'REST API, webhooks, Zapier, ComfyUI nodes' },
-            ].map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                className="group p-6 rounded-2xl bg-neutral-950/50 border border-neutral-800/50 hover:border-neutral-700/50 transition-all duration-300"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.6 + i * 0.08 }}
+              <a
+                href="/signup"
+                className="flex items-center justify-center gap-2"
               >
-                <div className="p-3 w-12 h-12 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="h-6 w-6 text-white" />
-                </div>
-                <h4 className="font-semibold text-white mb-2">{feature.title}</h4>
-                <p className="text-neutral-400 text-sm leading-relaxed">{feature.desc}</p>
-              </motion.div>
-            ))}
+                <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-purple-200" />
+                <span>Mulai Buat Video Gratis</span>
+                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
+              </a>
+            </Button>
+
+            <Button
+              size="lg"
+              variant="ghost"
+              className="w-full sm:w-auto gap-2 px-6 sm:px-8 py-5 sm:py-7 text-sm sm:text-lg rounded-full border border-white/15 hover:border-white/30 hover:bg-white/5 text-white transition-all duration-300"
+              asChild
+            >
+              <a
+                href="/gallery"
+                className="flex items-center justify-center gap-2"
+              >
+                <Film className="h-4 w-4 sm:h-5 sm:w-5 text-neutral-400" />
+                <span>Lihat Contoh Karya</span>
+              </a>
+            </Button>
           </div>
+
+          {/* Trust micro-copy */}
+          <motion.p
+            className="mt-8 text-xs text-neutral-600 flex items-center justify-center gap-2"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <span>✓ Tanpa kartu kredit</span>
+            <span className="w-1 h-1 rounded-full bg-neutral-700" />
+            <span>✓ Tanpa batas waktu</span>
+            <span className="w-1 h-1 rounded-full bg-neutral-700" />
+            <span>✓ Kredit aktif selamanya</span>
+          </motion.p>
         </motion.div>
       </div>
     </section>
-  );
-}
-
-function PricingCard({ plan }: { plan: typeof plans[0] }) {
-  return (
-    <Card 
-      className={`relative overflow-hidden group ${plan.gradient} ${plan.border} transition-all duration-500 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)]`}
-    >
-      {plan.popular && (
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-1 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-semibold uppercase tracking-wider rounded-full">
-          Most Popular
-        </div>
-      )}
-
-      <div className="p-8 relative z-10 flex flex-col h-full">
-        {/* Plan Name */}
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-          <p className="text-neutral-400 text-sm">{plan.description}</p>
-        </div>
-
-        {/* Price */}
-        <div className="mb-6">
-          <div className="flex items-baseline gap-1">
-            <span className="text-5xl font-bold text-white">{plan.price}</span>
-            <span className="text-neutral-400">{plan.period}</span>
-          </div>
-          <p className="text-sm text-neutral-500 mt-1">{plan.credits}</p>
-          <p className="text-sm text-neutral-500">Max resolution: <span className="text-white font-mono">{plan.maxResolution}</span></p>
-        </div>
-
-        {/* Features */}
-        <ul className="space-y-3 mb-8 flex-1">
-          {plan.features.map((feature, i) => (
-            <li key={i} className="flex items-start gap-3 text-sm">
-              <svg className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-neutral-300">{feature}</span>
-            </li>
-          ))}
-        </ul>
-
-        {/* CTA Button */}
-        <Button
-          size="lg"
-          className="w-full gap-2"
-          variant={plan.popular ? 'default' : 'outline'}
-          asChild
-        >
-          <a href={plan.popular ? '/pricing?plan=pro' : '/auth/signup'}>
-            {plan.cta}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </a>
-        </Button>
-      </div>
-
-      {/* Background glow for popular */}
-      {plan.popular && (
-        <div className="absolute inset-0 bg-gradient-to-t from-purple-600/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-      )}
-    </Card>
   );
 }

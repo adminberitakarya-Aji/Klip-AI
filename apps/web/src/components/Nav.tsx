@@ -20,10 +20,10 @@ import { Button } from "@klipai/ui/components/button";
 import { cn } from "@klipai/ui/lib/utils";
 
 const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "Gallery", href: "#gallery" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Templates", href: "/templates" },
+  { label: "Fitur", href: "#features" },
+  { label: "Galeri", href: "#gallery" },
+  { label: "Harga", href: "#pricing" },
+  { label: "Template", href: "/templates" },
 ];
 
 export function Nav() {
@@ -171,7 +171,7 @@ export function Nav() {
                             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-neutral-800 transition-colors text-red-400"
                           >
                             <LogOut className="h-4 w-4" />
-                            <span className="text-sm">Sign Out</span>
+                            <span className="text-sm">Keluar</span>
                           </button>
                         </div>
                       </motion.div>
@@ -183,7 +183,7 @@ export function Nav() {
                   href="/generate"
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-600/25 transition-all duration-300"
                 >
-                  Create
+                  Buat Video
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </>
@@ -193,13 +193,13 @@ export function Nav() {
                   href="/signin"
                   className="text-sm text-neutral-400 hover:text-white transition-colors"
                 >
-                  Sign In
+                  Masuk
                 </Link>
                 <Link
                   href="/signup"
                   className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-600/25 transition-all duration-300"
                 >
-                  Get Started
+                  Mulai Sekarang
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </>
