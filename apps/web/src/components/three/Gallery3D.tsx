@@ -2,7 +2,7 @@
 
 import { CanvasProvider } from "./CanvasProvider";
 import { ImageGallery } from "./objects/ImageGallery";
-import { GalleryItem, type GalleryItemData } from "./objects/GalleryItem";
+import { type GalleryItemData } from "./objects/GalleryItem";
 import {
   Sparkles,
   Video,

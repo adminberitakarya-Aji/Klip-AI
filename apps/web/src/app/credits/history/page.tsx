@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import {
   Coins,
@@ -8,7 +8,6 @@ import {
   ArrowUpCircle,
   Gift,
   RefreshCw,
-  Loader2,
 } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
@@ -43,7 +42,7 @@ export default function CreditsHistoryPage() {
   const [page, setPage] = useState(1);
   const limit = 20;
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(
@@ -60,11 +59,11 @@ export default function CreditsHistoryPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
 
   useEffect(() => {
     fetchHistory();
-  }, [page]);
+  }, [page, fetchHistory]);
 
   const getTransactionIcon = (type: string) => {
     switch (type) {

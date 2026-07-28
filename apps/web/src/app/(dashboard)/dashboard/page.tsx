@@ -4,16 +4,8 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import Link from "next/link";
-import {
-  Coins,
-  Wand2,
-  Video,
-  ArrowRight,
-  Zap,
-  Gift,
-  CreditCard,
-  Loader2,
-} from "lucide-react";
+import { Wand2, Video, ArrowRight, Zap, Gift, CreditCard } from "lucide-react";
+import Image from "next/image";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
 import { Skeleton } from "@klipai/ui/components/skeleton";
@@ -72,9 +64,11 @@ export default function DashboardPage() {
               </p>
             </div>
             {session.user?.image && (
-              <img
+              <Image
                 src={session.user.image}
                 alt={session.user.name || "User"}
+                width={48}
+                height={48}
                 className="w-12 h-12 rounded-full border-2 border-purple-500"
               />
             )}

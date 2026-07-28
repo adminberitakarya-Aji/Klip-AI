@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useMemo, useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Group, Mesh, MeshStandardMaterial, Color } from "three";
 import { Html } from "@react-three/drei";
@@ -105,7 +105,7 @@ export function GalleryItem({
       >
         <div className="flex flex-col items-center gap-1.5 px-2">
           <div className="w-8 h-8 rounded-lg bg-black/50 backdrop-blur flex items-center justify-center border border-white/10 text-white">
-            {data.icon as any}
+            {data.icon}
           </div>
           <div className="text-[9px] uppercase tracking-widest text-white/70 font-mono">
             {data.badge}

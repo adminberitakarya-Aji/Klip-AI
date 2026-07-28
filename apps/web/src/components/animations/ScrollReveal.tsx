@@ -14,7 +14,7 @@ import {
 gsap.registerPlugin(ScrollTrigger);
 
 interface ScrollRevealProps extends HTMLAttributes<HTMLDivElement> {
-  children: any;
+  children: ReactNode;
   delay?: number;
 }
 
@@ -22,7 +22,7 @@ export const ScrollReveal = forwardRef<HTMLDivElement, ScrollRevealProps>(
   ({ children, delay = 0, className = "", ...props }, forwardedRef) => {
     const ref = useRef<HTMLDivElement>(null);
 
-    useImperativeHandle(forwardedRef, () => ref.current!, [ref.current]);
+    useImperativeHandle(forwardedRef, () => ref.current!);
 
     useGSAP(
       () => {
@@ -53,7 +53,7 @@ export const ScrollReveal = forwardRef<HTMLDivElement, ScrollRevealProps>(
 
     return (
       <div ref={ref} className={className} {...props}>
-        {children as any}
+        {children}
       </div>
     );
   },

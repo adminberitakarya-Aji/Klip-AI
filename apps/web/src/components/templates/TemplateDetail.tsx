@@ -22,7 +22,8 @@ interface Shot {
   referenceImageUrl?: string | null;
   referenceRole?: string | null;
   referenceWeight?: number | null;
-  brandKitOverlays?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  brandKitOverlays?: any;
 }
 
 interface TemplateDetailProps {
@@ -45,7 +46,8 @@ interface TemplateDetailProps {
     usageCount: number;
     rating: number | null;
     isOfficial: boolean;
-    brandKitSlots: Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    brandKitSlots: any;
     shots: Shot[];
     createdAt: string;
     updatedAt: string;
@@ -314,7 +316,9 @@ export function TemplateDetail({
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() =>
+                    setActiveTab(tab.id as "overview" | "shots" | "brandkit")
+                  }
                   className={cn(
                     "flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2",
                     activeTab === tab.id
@@ -533,7 +537,7 @@ export function TemplateDetail({
                         Placeholder Teks
                       </h4>
                       <div className="space-y-3">
-                        {template.brandKitSlots.textPlaceholders.map(
+                        {template.brandKitSlots?.textPlaceholders?.map(
                           (ph: any) => (
                             <div
                               key={ph.key}

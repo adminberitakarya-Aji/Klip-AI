@@ -28,8 +28,8 @@ export function Marquee({
           animationDirection: direction === "right" ? "reverse" : "normal",
         }}
       >
-        {children as any}
-        {children as any}
+        {children}
+        {children}
       </div>
     </div>
   );
@@ -46,7 +46,7 @@ export function MarqueeItem({
 }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={`flex-shrink-0 ${className}`} {...props}>
-      {children as any}
+      {children}
     </div>
   );
 }

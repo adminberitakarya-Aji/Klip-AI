@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { TemplateCard } from "./TemplateCard";
-import { cn } from "@/lib/utils";
 
 interface Template {
   id: string;
@@ -104,13 +103,7 @@ export function TemplateBrowser({
   // Fetch on filter change
   useEffect(() => {
     fetchTemplates(1, false);
-  }, [
-    filters.category,
-    filters.format,
-    filters.style,
-    filters.search,
-    filters.sortBy,
-  ]);
+  }, [fetchTemplates]);
 
   const handleFilterChange = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));

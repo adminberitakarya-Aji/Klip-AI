@@ -242,6 +242,7 @@ export function Features() {
                 exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.5 }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={active.thumbnail}
                   alt={active.title}
@@ -380,6 +381,7 @@ export function Features() {
                   <div
                     className={`flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden border ${isActive ? fa.border : "border-white/10"} relative`}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={feat.thumbnail}
                       alt={feat.title}

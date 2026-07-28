@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Sparkles, Zap, Shield, Globe, Users, ArrowRight } from "lucide-react";
-import Link from "next/link";
 
 const reasons = [
   {

@@ -1,9 +1,10 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
+import type { ReactNode } from "react";
 
 interface CanvasProviderProps {
-  children: any;
+  children: ReactNode;
   className?: string;
   camera?: { position: [number, number, number]; fov?: number };
 }
@@ -25,7 +26,7 @@ export function CanvasProvider({
       shadows={true}
     >
       <color attach="background" args={["#000000"]} />
-      {children as any}
+      {children}
     </Canvas>
   );
 }

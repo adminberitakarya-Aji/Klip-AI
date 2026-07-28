@@ -24,7 +24,8 @@ interface Shot {
   referenceImageUrl?: string | null;
   referenceRole?: string | null;
   referenceWeight?: number | null;
-  brandKitOverlays?: Record<string, any>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  brandKitOverlays?: any;
 }
 
 interface BrandKit {
@@ -55,7 +56,8 @@ interface TemplateCustomizeProps {
     previewThumbnailUrl: string | null;
     previewVideoUrl: string | null;
     creditsCost: number;
-    brandKitSlots: Record<string, any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    brandKitSlots: any;
     shots: Shot[];
     createdAt: string;
   };
@@ -100,11 +102,10 @@ export function TemplateCustomize({
     textValues?: Record<string, string>;
   }>({});
   const [generating, setGenerating] = useState(false);
-  const [jobId, setJobId] = useState<string | null>(null);
 
   // Initialize shot overrides with defaults
   useEffect(() => {
-    const initialOverrides: Record<string, any> = {};
+    const initialOverrides: Record<string, Record<string, string>> = {};
     template.shots.forEach((shot) => {
       initialOverrides[shot.id] = {
         prompt: shot.prompt,
@@ -147,7 +148,7 @@ export function TemplateCustomize({
     }));
   };
 
-  const handleBrandKitOverrideChange = (field: string, value: any) => {
+  const handleBrandKitOverrideChange = (field: string, value: unknown) => {
     setBrandKitOverrides((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -182,7 +183,6 @@ export function TemplateCustomize({
 
       const data = await res.json();
       if (data.success) {
-        setJobId(data.data.jobId);
         setActiveStep("review");
         toast.success("Generate dimulai! Kredit sudah dipotong.");
         router.push(
@@ -876,7 +876,7 @@ export function TemplateCustomize({
                             Placeholder Teks (Wajib diisi)
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {template.brandKitSlots.textPlaceholders.map(
+                            {template.brandKitSlots?.textPlaceholders?.map(
                               (ph: any) => (
                                 <div key={ph.key}>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">

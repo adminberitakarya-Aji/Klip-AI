@@ -108,7 +108,7 @@ export function FeatureCard3D({
       >
         <div className="flex flex-col items-center gap-2 px-2">
           <div className="w-10 h-10 rounded-xl bg-black/40 backdrop-blur flex items-center justify-center border border-white/10 text-white">
-            {icon as any}
+            {icon}
           </div>
           <div className="text-[10px] uppercase tracking-widest text-white/60 font-mono">
             {badge}

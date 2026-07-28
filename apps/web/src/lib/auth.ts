@@ -4,7 +4,7 @@ import type { Adapter } from "next-auth/adapters";
 // environments — load it lazily so type-check and runtime both succeed.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _adapter: any = null;
-async function getAdapter(): Promise<Adapter | undefined> {
+export async function getAdapter(): Promise<Adapter | undefined> {
   if (_adapter !== null) return _adapter;
   try {
     const mod = await import("@auth/prisma-adapter");
@@ -109,17 +109,19 @@ export const authOptions: NextAuthConfig = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id ?? "";
-        token.role = (user as any).role ?? "";
-        token.credits = (user as any).credits ?? 0;
+        const u = user as unknown as Record<string, unknown>;
+        token.id = (u.id as string) ?? "";
+        token.role = (u.role as string) ?? "";
+        token.credits = (u.credits as number) ?? 0;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).credits = token.credits;
+        const su = session.user as unknown as Record<string, unknown>;
+        su.id = token.id;
+        su.role = token.role;
+        su.credits = token.credits;
       }
       return session;
     },

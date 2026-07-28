@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, Check, Sparkles, Coins, Zap, Star } from "lucide-react";
+import { ArrowRight, Check, Coins, Zap, Star } from "lucide-react";
 import { Button } from "@klipai/ui/components/button";
 import { cn } from "@klipai/ui/lib/utils";
 

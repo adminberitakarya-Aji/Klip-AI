@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@klipai/ui/components/button";
+import Image from "next/image";
 import { cn } from "@klipai/ui/lib/utils";
 
 const navLinks = [
@@ -27,7 +27,7 @@ const navLinks = [
 ];
 
 export function Nav() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
@@ -117,9 +117,11 @@ export function Nav() {
                     className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
                   >
                     {session.user?.image ? (
-                      <img
+                      <Image
                         src={session.user.image}
                         alt={session.user.name || "User"}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full"
                       />
                     ) : (

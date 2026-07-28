@@ -80,10 +80,12 @@ export default async function TemplateCustomizePage({ params }: PageProps) {
         <TemplateCustomize
           template={{
             ...template,
-            brandKitSlots: template.brandKitSlots as any,
+            brandKitSlots:
+              (template.brandKitSlots as Record<string, unknown>) ?? {},
             shots: template.shots.map((s: (typeof template.shots)[number]) => ({
               ...s,
-              brandKitOverlays: s.brandKitOverlays as any,
+              brandKitOverlays:
+                (s.brandKitOverlays as Record<string, unknown>) ?? undefined,
               negativePrompt: s.negativePrompt ?? undefined,
               camera: s.camera ?? undefined,
               lighting: s.lighting ?? undefined,
@@ -98,7 +100,10 @@ export default async function TemplateCustomizePage({ params }: PageProps) {
             ...bk,
             colorPalette: bk.colorPalette as string[],
             textValues:
-              ((bk as any).textValues as Record<string, string>) || {},
+              ((bk as Record<string, unknown>).textValues as Record<
+                string,
+                string
+              >) || {},
           }))}
           userCredits={user?.credits || 0}
         />

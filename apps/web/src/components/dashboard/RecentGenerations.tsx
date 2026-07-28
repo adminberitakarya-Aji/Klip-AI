@@ -9,7 +9,6 @@ import {
   Clock,
   ExternalLink,
   Loader2,
-  MoreHorizontal,
 } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
@@ -61,17 +60,6 @@ const statusLabels: Record<string, string> = {
   completed: "Selesai",
   failed: "Gagal",
 };
-
-function formatDate(dateString: string) {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
 
 function formatTimeAgo(dateString: string) {
   const now = new Date();

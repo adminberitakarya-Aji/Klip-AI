@@ -108,7 +108,7 @@ function ErrorScreen({ error }: { error: string }) {
 
 function ResultSection({
   job,
-  slug,
+  slug: _slug,
   template,
 }: {
   job: JobData;
@@ -358,7 +358,7 @@ function TemplateGenerateContent() {
         } else {
           setError(data.error?.message || "Gagal memuat status");
         }
-      } catch (_err) {
+      } catch {
         setError("Terjadi kesalahan jaringan");
       } finally {
         setLoading(false);

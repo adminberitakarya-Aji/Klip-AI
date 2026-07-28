@@ -10,13 +10,10 @@ import {
   X,
   Coins,
   Loader2,
-  AlertCircle,
   Check,
-  ChevronDown,
 } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
-import { Input } from "@klipai/ui/components/input";
 import { Textarea } from "@klipai/ui/components/textarea";
 import { Label } from "@klipai/ui/components/label";
 import {
@@ -240,7 +237,7 @@ export function GenerationForm() {
 
         attempts++;
         setTimeout(poll, 5000); // Poll every 5 seconds
-      } catch (err) {
+      } catch {
         attempts++;
         setTimeout(poll, 5000);
       }
@@ -383,6 +380,7 @@ export function GenerationForm() {
             </Label>
             {imagePreview ? (
               <div className="relative inline-block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePreview}
                   alt="Preview"

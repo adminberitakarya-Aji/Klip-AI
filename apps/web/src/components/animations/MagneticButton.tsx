@@ -41,7 +41,7 @@ export function MagneticButton({
     onMouseMove?.(e);
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e: MouseEvent<HTMLButtonElement>) => {
     if (!ref.current) return;
 
     gsap.to(ref.current, {
@@ -50,6 +50,8 @@ export function MagneticButton({
       duration: 0.5,
       ease: "elastic.out(1, 0.5)",
     });
+
+    onMouseLeave?.(e);
   };
 
   return (
@@ -60,7 +62,7 @@ export function MagneticButton({
       className={`relative inline-flex items-center justify-center ${className}`}
       {...props}
     >
-      {children as any}
+      {children}
     </button>
   );
 }

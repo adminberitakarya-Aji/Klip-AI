@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 import * as React from "react";
 import Lenis from "lenis";
@@ -39,7 +39,7 @@ export function LenisProvider({
 
   return (
     <div className="lenis" data-lenis-prevent>
-      {children as any}
+      {children}
     </div>
   );
 }

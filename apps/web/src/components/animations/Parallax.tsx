@@ -47,7 +47,7 @@ export function Parallax({
       style={{ willChange: "transform", ...props.style }}
       {...props}
     >
-      {children as any}
+      {children}
     </div>
   );
 }
@@ -92,7 +92,7 @@ export function ParallaxItem({
       style={{ willChange: "transform", ...props.style }}
       {...props}
     >
-      {children as any}
+      {children}
     </div>
   );
 }
