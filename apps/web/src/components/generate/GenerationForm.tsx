@@ -1,21 +1,29 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Video,
-  Image as ImageIcon,
+  ImageIcon,
   Wand2,
   Upload,
   X,
   Coins,
   Loader2,
   Check,
+  Sparkles,
+  Camera,
+  Music,
+  Clock,
+  Tv,
+  Globe,
+  Plus,
+  User,
+  Film,
 } from "lucide-react";
 import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
 import { Textarea } from "@klipai/ui/components/textarea";
-import { Label } from "@klipai/ui/components/label";
 import {
   Select,
   SelectContent,
@@ -31,101 +39,49 @@ type GenerationType = "text-to-video" | "image-to-video" | "video-to-video";
 type Resolution = "720p" | "1080p";
 type Quality = "standard" | "high";
 
-interface GenerationCost {
-  credits: number;
-  breakdown: {
-    base: number;
-    resolution: number;
-    quality: number;
-  };
-}
-
-const generationTypes = [
-  {
-    value: "text-to-video" as const,
-    label: "Text to Video",
-    description: "Generate video dari prompt teks",
-    icon: Video,
-  },
-  {
-    value: "image-to-video" as const,
-    label: "Image to Video",
-    description: "Animasi gambar jadi video",
-    icon: ImageIcon,
-  },
-  {
-    value: "video-to-video" as const,
-    label: "Video to Video",
-    description: "Transform video yang ada",
-    icon: Wand2,
-  },
-];
-
-const resolutionOptions = [
-  { value: "720p" as const, label: "720p (HD)", multiplier: 1.0 },
-  { value: "1080p" as const, label: "1080p (Full HD)", multiplier: 1.5 },
-];
-
-const qualityOptions = [
-  { value: "standard" as const, label: "Standard", multiplier: 1.0 },
-  { value: "high" as const, label: "High Quality", multiplier: 1.3 },
+const studioPresets = [
+  "Multi-Scene Cut",
+  "UGC-Style Ad",
+  "Dynamic Camera Move",
+  "Multi-Character Scene",
+  "Cinematic Lighting 4K",
 ];
 
 export function GenerationForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialPrompt = searchParams.get("prompt") || "";
+  const initialType =
+    (searchParams.get("type") as GenerationType) || "text-to-video";
+
   const [step, setStep] = useState<
     "config" | "preview" | "generating" | "done"
   >("config");
   const [generationType, setGenerationType] =
-    useState<GenerationType>("text-to-video");
-  const [prompt, setPrompt] = useState("");
+    useState<GenerationType>(initialType);
+  const [prompt, setPrompt] = useState(initialPrompt);
   const [resolution, setResolution] = useState<Resolution>("1080p");
   const [quality, setQuality] = useState<Quality>("standard");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [estimatedCost, setEstimatedCost] = useState<GenerationCost | null>(
-    null,
-  );
   const [userBalance, setUserBalance] = useState<number>(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generationId, setGenerationId] = useState<string | null>(null);
 
-  // Fetch user balance
+  // Fetch balance
   useEffect(() => {
-    async function fetchBalance() {
-      try {
-        const response = await fetch("/api/credits/balance");
-        const result = await response.json();
-        if (result.success) {
-          setUserBalance(result.data.balance);
+    fetch("/api/credits/balance")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.success) {
+          setUserBalance(res.data?.balance ?? res.balance ?? 0);
         }
-      } catch (err) {
-        console.error("Failed to fetch balance:", err);
-      }
-    }
-    fetchBalance();
+      })
+      .catch(() => {});
   }, []);
 
-  // Calculate estimated cost
-  useEffect(() => {
-    const baseCost = 2; // Base cost in credits
-    const resMultiplier =
-      resolutionOptions.find((r) => r.value === resolution)?.multiplier || 1;
-    const qualMultiplier =
-      qualityOptions.find((q) => q.value === quality)?.multiplier || 1;
-
-    const cost = Math.ceil(baseCost * resMultiplier * qualMultiplier);
-
-    setEstimatedCost({
-      credits: cost,
-      breakdown: {
-        base: baseCost,
-        resolution: cost - baseCost,
-        quality: 0,
-      },
-    });
-  }, [resolution, quality]);
+  const cost = resolution === "1080p" ? 3 : 2;
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,8 +93,8 @@ export function GenerationForm() {
       }
       setImageFile(file);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      reader.onload = (ev) => {
+        setImagePreview(ev.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -149,14 +105,12 @@ export function GenerationForm() {
     setImagePreview(null);
   };
 
-  // Check if can generate
   const canGenerate = useCallback(() => {
     if (!prompt.trim()) return false;
-    if (!estimatedCost) return false;
-    if (estimatedCost.credits > userBalance) return false;
+    if (cost > userBalance) return false;
     if (generationType !== "text-to-video" && !imageFile) return false;
     return true;
-  }, [prompt, estimatedCost, userBalance, generationType, imageFile]);
+  }, [prompt, cost, userBalance, generationType, imageFile]);
 
   // Handle generate
   const handleGenerate = async () => {
@@ -166,7 +120,6 @@ export function GenerationForm() {
     setError(null);
 
     try {
-      // Create form data
       const formData = new FormData();
       formData.append("type", generationType);
       formData.append("prompt", prompt);
@@ -189,73 +142,55 @@ export function GenerationForm() {
       }
 
       if (result.success) {
-        setGenerationId(result.data.jobId || result.data.id);
+        setGenerationId(result.data?.jobId || result.data?.id);
         setStep("generating");
-        toast.success("Generation started!");
-
-        // Poll for status
-        pollGenerationStatus(result.data.jobId || result.data.id);
+        toast.success("Generasi video dimulai!");
+        pollStatus(result.data?.jobId || result.data?.id);
       } else {
         throw new Error(result.error?.message || "Generation failed");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
       setLoading(false);
     }
   };
 
-  // Poll generation status
-  const pollGenerationStatus = async (jobId: string) => {
-    const maxAttempts = 60; // 5 minutes max
+  // Poll status
+  const pollStatus = async (jobId: string) => {
     let attempts = 0;
-
     const poll = async () => {
-      if (attempts >= maxAttempts) {
-        setError("Generation timed out. Please try again.");
+      if (attempts >= 60) {
+        setError("Waktu pemrosesan habis. Silakan cek di riwayat.");
         setStep("config");
         setLoading(false);
         return;
       }
-
       try {
         const response = await fetch(`/api/generations/${jobId}`);
         const result = await response.json();
 
         if (result.data?.status === "completed") {
           setStep("done");
-          toast.success("Video generated successfully!");
+          toast.success("Video berhasil dibuat!");
           setLoading(false);
           return;
         }
-
         if (result.data?.status === "failed") {
-          setError("Generation failed. Please try again.");
+          setError("Generasi gagal. Silakan coba lagi.");
           setStep("config");
           setLoading(false);
           return;
         }
-
         attempts++;
-        setTimeout(poll, 5000); // Poll every 5 seconds
+        setTimeout(poll, 4000);
       } catch {
         attempts++;
-        setTimeout(poll, 5000);
+        setTimeout(poll, 4000);
       }
     };
-
     poll();
   };
 
-  // Redirect to view result
-  const handleViewResult = () => {
-    if (generationId) {
-      router.push(`/dashboard/history?highlight=${generationId}`);
-    } else {
-      router.push("/dashboard");
-    }
-  };
-
-  // Error state
   if (error && step === "config") {
     return (
       <ErrorState
@@ -266,145 +201,200 @@ export function GenerationForm() {
     );
   }
 
-  // Done state
   if (step === "done") {
     return (
-      <Card className="p-8 text-center bg-neutral-900/50 border-green-500/30">
-        <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Check className="h-10 w-10 text-green-500" />
+      <div
+        className="rounded-3xl p-12 text-center max-w-xl mx-auto"
+        style={{
+          background: "oklch(0.08 0.015 260 / 0.8)",
+          border: "1px solid oklch(0.72 0.2 150 / 0.3)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+          style={{
+            background: "oklch(0.72 0.2 150 / 0.15)",
+            border: "2px solid oklch(0.72 0.2 150 / 0.4)",
+          }}
+        >
+          <Check className="w-10 h-10 text-emerald-400" />
         </div>
-        <h2 className="text-2xl font-bold text-white mb-2">Video Generated!</h2>
-        <p className="text-neutral-400 mb-6">
-          Video Anda sedang diproses. Cek di dashboard untuk melihat hasilnya.
+        <h2 className="text-2xl font-bold text-white mb-2">
+          Video Berhasil Dibuat!
+        </h2>
+        <p className="text-sm text-neutral-400 mb-8">
+          Hasil video AI Anda sudah tersimpan di studio history.
         </p>
-        <div className="flex gap-4 justify-center">
-          <Button variant="outline" onClick={() => setStep("config")}>
+        <div className="flex gap-3 justify-center">
+          <Button
+            variant="outline"
+            onClick={() => setStep("config")}
+            className="rounded-xl border-neutral-700 text-white hover:bg-neutral-800"
+          >
             Generate Lagi
           </Button>
           <Button
-            onClick={handleViewResult}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500"
+            onClick={() => router.push("/credits/history")}
+            className="rounded-xl font-bold"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.82 0.15 205) 0%, oklch(0.7 0.18 230) 100%)",
+              color: "oklch(0.05 0 0)",
+            }}
           >
-            Lihat di Dashboard
+            Lihat di Studio History
           </Button>
         </div>
-      </Card>
+      </div>
     );
   }
 
-  // Generating state
   if (step === "generating") {
     return (
-      <Card className="p-8 text-center bg-neutral-900/50 border-purple-500/30">
-        <Loader2 className="h-16 w-16 animate-spin text-purple-500 mx-auto mb-6" />
+      <div
+        className="rounded-3xl p-12 text-center max-w-xl mx-auto"
+        style={{
+          background: "oklch(0.08 0.015 260 / 0.8)",
+          border: "1px solid oklch(0.82 0.15 205 / 0.3)",
+          backdropFilter: "blur(20px)",
+        }}
+      >
+        <Loader2 className="w-16 h-16 animate-spin text-cyan-400 mx-auto mb-6" />
         <h2 className="text-2xl font-bold text-white mb-2">
-          Generating Video...
+          Membuat Video AI...
         </h2>
-        <p className="text-neutral-400 mb-4">
-          Mohon tunggu, proses ini biasanya memakan waktu 1-3 menit.
+        <p className="text-sm text-neutral-400 mb-4">
+          Model AI sedang merender frame video. Membutuhkan waktu sekitar 1-2
+          menit.
         </p>
-        <p className="text-sm text-neutral-500">
-          Halaman ini akan otomatis ter-update saat video siap.
+        <p className="text-xs text-neutral-500">
+          Proses akan otomatis selesai saat video siap.
         </p>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Generation Type Selector */}
-      <Card className="p-6 bg-neutral-900/50 border-neutral-800">
-        <h3 className="text-lg font-semibold text-white mb-4">
-          Pilih Tipe Generation
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {generationTypes.map((type) => {
-            const Icon = type.icon;
-            const isSelected = generationType === type.value;
-            return (
-              <button
-                key={type.value}
-                onClick={() => setGenerationType(type.value)}
-                className={cn(
-                  "p-4 rounded-xl border-2 transition-all duration-300 text-left",
-                  isSelected
-                    ? "border-purple-500 bg-purple-500/10"
-                    : "border-neutral-700 bg-neutral-800/50 hover:border-neutral-600",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "h-6 w-6 mb-2",
-                    isSelected ? "text-purple-400" : "text-neutral-400",
-                  )}
-                />
-                <h4 className="font-semibold text-white">{type.label}</h4>
-                <p className="text-xs text-neutral-400 mt-1">
-                  {type.description}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      </Card>
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* ── STUDIO HEADER (HeyGen Image 4 Style) ── */}
+      <div className="text-center space-y-2">
+        <h1 className="text-3xl font-extrabold text-white tracking-tight">
+          AI Video Generator
+        </h1>
+        <p className="text-sm text-neutral-400">
+          Buat video sinematik berkualitas tinggi dengan AI Seedance 2.5
+        </p>
+      </div>
 
-      {/* Prompt Input */}
-      <Card className="p-6 bg-neutral-900/50 border-neutral-800">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="prompt" className="text-white">
-              Prompt {generationType === "text-to-video" ? "Teks" : "Deskripsi"}
-            </Label>
-            <span className="text-sm text-neutral-500">
+      {/* ── MAIN STUDIO PROMPT BUILDER CARD (HeyGen Image 4 Style) ── */}
+      <div
+        className="rounded-3xl p-6 transition-all duration-300 shadow-2xl space-y-5"
+        style={{
+          background: "oklch(0.08 0.015 260 / 0.85)",
+          border: "1px solid oklch(0.82 0.15 205 / 0.25)",
+          backdropFilter: "blur(24px)",
+          boxShadow: "0 20px 60px -20px oklch(0.82 0.15 205 / 0.15)",
+        }}
+      >
+        {/* Top Pills Row: Model & Prompt Type Selectors */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[oklch(1_0_0/0.06)] pb-4">
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xs font-semibold px-3 py-1 rounded-full flex items-center gap-1.5"
+              style={{
+                background: "oklch(0.82 0.15 205 / 0.15)",
+                border: "1px solid oklch(0.82 0.15 205 / 0.3)",
+                color: "oklch(0.82 0.15 205)",
+              }}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Seedance 2.5 AI Engine
+            </span>
+
+            {/* Generation Type Pills */}
+            <div className="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-neutral-800">
+              {(
+                [
+                  { id: "text-to-video", label: "Text to Video" },
+                  { id: "image-to-video", label: "Image to Video" },
+                  { id: "video-to-video", label: "Video to Video" },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setGenerationType(t.id)}
+                  className={cn(
+                    "text-xs px-3 py-1 rounded-full font-medium transition-all",
+                    generationType === t.id
+                      ? "bg-neutral-800 text-white shadow-sm"
+                      : "text-neutral-400 hover:text-white",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-400">Saldo Anda:</span>
+            <span className="text-xs font-bold text-white bg-neutral-800 px-2.5 py-1 rounded-full border border-neutral-700">
+              {userBalance.toLocaleString("id-ID")} credits
+            </span>
+          </div>
+        </div>
+
+        {/* Prompt Textarea */}
+        <div className="space-y-2">
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value.slice(0, 500))}
+            placeholder="Ketik deskripsi prompt visual video Anda... (Contoh: High quality 4K shot of a futuristic sports car driving through a neon cyber city, dramatic lighting, slow motion 60fps)"
+            rows={4}
+            className="w-full bg-transparent border-0 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus-visible:ring-0 resize-none p-0"
+          />
+          <div className="flex justify-end">
+            <span className="text-[11px] text-neutral-500">
               {prompt.length} / 500
             </span>
           </div>
-          <Textarea
-            id="prompt"
-            placeholder={
-              generationType === "text-to-video"
-                ? "Contoh: A cinematic shot of a tiger walking through a misty forest, slow motion, 4K..."
-                : "Deskripsikan apa yang ingin Anda lihat di video..."
-            }
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value.slice(0, 500))}
-            className="min-h-[120px] bg-neutral-800 border-neutral-700 text-white placeholder:text-neutral-500"
-          />
         </div>
 
-        {/* Image Upload (for image-to-video and video-to-video) */}
+        {/* Image/Video Upload Box (For Image-to-Video & Video-to-Video) */}
         {generationType !== "text-to-video" && (
-          <div className="mt-4 space-y-2">
-            <Label>
-              Upload {generationType === "image-to-video" ? "Gambar" : "Video"}
-            </Label>
+          <div className="pt-2 border-t border-[oklch(1_0_0/0.06)]">
+            <p className="text-xs font-medium text-neutral-300 mb-2">
+              Upload{" "}
+              {generationType === "image-to-video"
+                ? "Gambar Referensi"
+                : "Video Asal"}
+            </p>
             {imagePreview ? (
               <div className="relative inline-block">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={imagePreview}
                   alt="Preview"
-                  className="max-h-40 rounded-lg border border-neutral-700"
+                  className="max-h-36 rounded-2xl border border-neutral-700 object-cover"
                 />
                 <button
                   onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white"
+                  className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white shadow-lg"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-neutral-700 border-dashed rounded-lg cursor-pointer bg-neutral-800/50 hover:bg-neutral-800 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <Upload className="h-8 w-8 text-neutral-500 mb-2" />
-                  <p className="text-sm text-neutral-400">
-                    Klik untuk upload{" "}
-                    {generationType === "image-to-video" ? "gambar" : "video"}
-                  </p>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Max 10MB, JPG/PNG/MP4
-                  </p>
-                </div>
+              <label className="flex items-center justify-center gap-3 p-4 rounded-2xl border border-dashed border-neutral-700 bg-black/30 hover:bg-black/50 cursor-pointer transition-colors">
+                <Upload className="w-5 h-5 text-cyan-400" />
+                <span className="text-xs text-neutral-400">
+                  Klik untuk upload{" "}
+                  {generationType === "image-to-video"
+                    ? "gambar (JPG/PNG)"
+                    : "video (MP4)"}{" "}
+                  max 10MB
+                </span>
                 <input
                   type="file"
                   className="hidden"
@@ -417,105 +407,119 @@ export function GenerationForm() {
             )}
           </div>
         )}
-      </Card>
 
-      {/* Settings */}
-      <Card className="p-6 bg-neutral-900/50 border-neutral-800">
-        <h3 className="text-lg font-semibold text-white mb-4">Pengaturan</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Resolusi</Label>
-            <Select
-              value={resolution}
-              onValueChange={(v) => setResolution(v as Resolution)}
-            >
-              <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700">
-                {resolutionOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Kualitas</Label>
-            <Select
-              value={quality}
-              onValueChange={(v) => setQuality(v as Quality)}
-            >
-              <SelectTrigger className="bg-neutral-800 border-neutral-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-neutral-800 border-neutral-700">
-                {qualityOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Parameter Pills Bar (Image 4 Style) */}
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[oklch(1_0_0/0.06)]">
+          <Select
+            value={resolution}
+            onValueChange={(v) => setResolution(v as Resolution)}
+          >
+            <SelectTrigger className="w-auto h-8 px-3 rounded-full text-xs bg-neutral-800/80 border-neutral-700 text-white gap-1.5">
+              <Tv className="w-3.5 h-3.5 text-cyan-400" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+              <SelectItem value="720p">720p (HD)</SelectItem>
+              <SelectItem value="1080p">1080p (Full HD)</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={quality}
+            onValueChange={(v) => setQuality(v as Quality)}
+          >
+            <SelectTrigger className="w-auto h-8 px-3 rounded-full text-xs bg-neutral-800/80 border-neutral-700 text-white gap-1.5">
+              <Camera className="w-3.5 h-3.5 text-purple-400" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-neutral-900 border-neutral-800 text-white">
+              <SelectItem value="standard">Standard Quality</SelectItem>
+              <SelectItem value="high">High Quality</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <span className="text-xs px-3 py-1.5 rounded-full bg-neutral-800/80 border border-neutral-700 text-neutral-300 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            10s Duration
+          </span>
+
+          <span className="text-xs px-3 py-1.5 rounded-full bg-neutral-800/80 border border-neutral-700 text-neutral-300 flex items-center gap-1.5">
+            <Film className="w-3.5 h-3.5 text-emerald-400" />
+            16:9 Aspect Ratio
+          </span>
         </div>
-      </Card>
 
-      {/* Cost Preview */}
-      <Card className="p-6 bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Coins className="h-5 w-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-sm text-neutral-400">Estimasi Biaya</p>
-              <p className="text-2xl font-bold text-white">
-                {estimatedCost?.credits || 0} credits
-              </p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-neutral-400">Saldo Anda</p>
-            <p className="text-xl font-bold text-white">
-              {userBalance.toLocaleString("id-ID")} credits
-            </p>
-            {estimatedCost && estimatedCost.credits > userBalance && (
-              <p className="text-sm text-red-400 mt-1">Saldo tidak cukup</p>
+        {/* Footer Row: Biaya & Generate Button */}
+        <div className="flex items-center justify-between pt-4 border-t border-[oklch(1_0_0/0.06)]">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-neutral-400">Estimasi Biaya:</span>
+            <span className="text-sm font-extrabold text-cyan-400 flex items-center gap-1">
+              <Coins className="w-4 h-4" />
+              {cost} credits
+            </span>
+            {cost > userBalance && (
+              <button
+                onClick={() => router.push("/credits")}
+                className="text-xs text-red-400 underline ml-2 hover:text-red-300"
+              >
+                (Saldo kurang - Beli Credits)
+              </button>
             )}
           </div>
-        </div>
-      </Card>
 
-      {/* Generate Button */}
-      <div className="flex gap-4">
-        <Button
-          onClick={handleGenerate}
-          disabled={!canGenerate() || loading}
-          className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-lg font-semibold disabled:opacity-50"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-              Memproses...
-            </>
-          ) : (
-            <>
-              <Wand2 className="h-5 w-5 mr-2" />
-              Generate Video
-            </>
-          )}
-        </Button>
-        {(estimatedCost?.credits || 0) > userBalance && (
-          <Button
-            variant="outline"
-            onClick={() => router.push("/credits")}
-            className="border-purple-500/50 text-purple-400"
+          <button
+            onClick={handleGenerate}
+            disabled={!canGenerate() || loading}
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl font-extrabold text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.82 0.15 205) 0%, oklch(0.7 0.18 230) 100%)",
+              color: "oklch(0.05 0 0)",
+              boxShadow: "0 4px 24px -4px oklch(0.82 0.15 205 / 0.6)",
+            }}
           >
-            Beli Credits
-          </Button>
-        )}
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Memproses...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4" />
+                Generate Video
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Preset Chips Below Box (HeyGen Image 4 Style) */}
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+        {studioPresets.map((preset) => (
+          <button
+            key={preset}
+            onClick={() => setPrompt(preset)}
+            className="text-xs px-3.5 py-1.5 rounded-full transition-all duration-200"
+            style={{
+              background: "oklch(1 0 0 / 0.04)",
+              border: "1px solid oklch(1 0 0 / 0.08)",
+              color: "oklch(1 0 0 / 0.6)",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                "oklch(0.82 0.15 205 / 0.4)";
+              (e.currentTarget as HTMLButtonElement).style.color = "white";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.borderColor =
+                "oklch(1 0 0 / 0.08)";
+              (e.currentTarget as HTMLButtonElement).style.color =
+                "oklch(1 0 0 / 0.6)";
+            }}
+          >
+            + {preset}
+          </button>
+        ))}
       </div>
     </div>
   );
