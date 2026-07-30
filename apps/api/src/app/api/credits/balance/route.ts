@@ -6,7 +6,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { getCreditBalance, grantFreeCredits } from "@/lib/credits";
+import { getCreditBalance } from "@/lib/credits";
 
 export async function GET(request: NextRequest) {
   try {

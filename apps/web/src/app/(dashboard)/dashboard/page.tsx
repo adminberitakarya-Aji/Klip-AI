@@ -13,10 +13,7 @@ import {
   Sliders,
   Plus,
   ArrowUpRight,
-  Zap,
-  Globe,
   Bot,
-  Scissors,
   Maximize,
   Layers,
 } from "lucide-react";

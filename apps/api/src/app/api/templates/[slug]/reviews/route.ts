@@ -5,7 +5,6 @@ import {
   createReviewSchema,
   reviewQuerySchema,
   type CreateReviewInput,
-  type ReviewQuery,
 } from "@klipai/core/schemas/template";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";

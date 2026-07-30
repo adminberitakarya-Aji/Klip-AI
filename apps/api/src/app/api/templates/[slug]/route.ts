@@ -9,21 +9,6 @@ import { calculateCreditsFromShots } from "@klipai/ai/pricing";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";
 
-// Helper: require admin
-async function requireAdmin(request: NextRequest) {
-  const sessionUser = await getSessionUser(request);
-  if (!sessionUser?.id || sessionUser.role !== "ADMIN") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: { code: "FORBIDDEN", message: "Admin access required" },
-      },
-      { status: 403 },
-    );
-  }
-  return sessionUser;
-}
-
 // GET /api/templates/[slug] - Get template detail with all shots
 export async function GET(
   request: NextRequest,

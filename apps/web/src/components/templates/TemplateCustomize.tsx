@@ -877,7 +877,11 @@ export function TemplateCustomize({
                           </h3>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {template.brandKitSlots?.textPlaceholders?.map(
-                              (ph: any) => (
+                              (ph: {
+                                key: string;
+                                label: string;
+                                required?: boolean;
+                              }) => (
                                 <div key={ph.key}>
                                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
                                     {ph.label}

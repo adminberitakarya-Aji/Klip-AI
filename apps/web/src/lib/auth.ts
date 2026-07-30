@@ -101,7 +101,7 @@ export const authOptions: NextAuthConfig = {
           name: user.name,
           image: user.image,
           role: user.role,
-          credits: user.credits,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
       },
     }),

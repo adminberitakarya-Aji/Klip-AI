@@ -224,6 +224,28 @@ export default function CreditsHistoryPage() {
             })}
           </div>
         )}
+
+        {total > limit && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-[oklch(1_0_0/0.06)]">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-xs rounded-lg bg-[oklch(1_0_0/0.05)] text-white/80 hover:bg-[oklch(1_0_0/0.1)] disabled:opacity-40"
+            >
+              Sebelumnya
+            </button>
+            <span className="text-xs text-white/50">
+              Halaman {page} dari {Math.ceil(total / limit)}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= Math.ceil(total / limit)}
+              className="px-3 py-1.5 text-xs rounded-lg bg-[oklch(1_0_0/0.05)] text-white/80 hover:bg-[oklch(1_0_0/0.1)] disabled:opacity-40"
+            >
+              Berikutnya
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

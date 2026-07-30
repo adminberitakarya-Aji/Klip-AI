@@ -3,8 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Video,
-  ImageIcon,
   Wand2,
   Upload,
   X,
@@ -13,15 +11,10 @@ import {
   Check,
   Sparkles,
   Camera,
-  Music,
   Clock,
   Tv,
-  Globe,
-  Plus,
-  User,
   Film,
 } from "lucide-react";
-import { Card } from "@klipai/ui/components/card";
 import { Button } from "@klipai/ui/components/button";
 import { Textarea } from "@klipai/ui/components/textarea";
 import {
@@ -271,6 +264,11 @@ export function GenerationForm() {
         <p className="text-xs text-neutral-500">
           Proses akan otomatis selesai saat video siap.
         </p>
+        {generationId && (
+          <p className="text-[11px] font-mono text-neutral-600 mt-3">
+            ID: {generationId}
+          </p>
+        )}
       </div>
     );
   }

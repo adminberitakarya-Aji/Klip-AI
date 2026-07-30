@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { audioService } from "@klipai/ai/services/audio-service";
-import { requireEnv } from "@klipai/config";
+
 import { captureError } from "@/lib/error-capture";
 
 export async function GET(request: NextRequest) {

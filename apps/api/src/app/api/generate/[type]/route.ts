@@ -131,24 +131,32 @@ export async function POST(
         data: {
           userId: sessionUser.id,
           prompt: parsed.data.prompt,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           type: (type as GenerationType)
             .toUpperCase()
             .replace(/-/g, "_") as any,
           status: "QUEUED",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           options: parsed.data.options as any,
           images: parsed.data.images || [],
           video: parsed.data.video || null,
           // NEW: Store reference images (Phase 11.1)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           referenceImages: parsed.data.referenceImages as any,
-          // NEW: Store motion brush config (Phase 11.2)
-          motionBrush: (parsed.data as any).motionBrush as any,
-          // NEW: Store camera control config (Phase 11.2)
-          cameraControl: (parsed.data as any).cameraControl as any,
-          // NEW: Store physics config (Phase 11.2)
-          physics: (parsed.data as any).physics as any,
-          // NEW: Store post-processing pipeline (Phase 11.3)
-          postProcessing: (parsed.data as any).postProcessing as any,
+          // NEW: Store advanced configs (Phase 11.2 / 11.3)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          motionBrush: (parsed.data as Record<string, unknown>)
+            .motionBrush as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cameraControl: (parsed.data as Record<string, unknown>)
+            .cameraControl as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          physics: (parsed.data as Record<string, unknown>).physics as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          postProcessing: (parsed.data as Record<string, unknown>)
+            .postProcessing as any,
           // Store credit transaction ID for potential refund
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           metadata: {
             creditTransactionId: creditTransaction.id,
             generationType: type,
@@ -173,7 +181,8 @@ export async function POST(
         video: parsed.data.video,
         // NEW: Pass reference images (Phase 11.1)
         referenceImages: parsed.data.referenceImages,
-        userPreferences: parsed.data.options as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        userPreferences: parsed.data.options as Record<string, unknown>,
       })
       .catch(async (e) => {
         captureError(`POST /api/generate/${type}`, e, {

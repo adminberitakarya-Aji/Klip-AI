@@ -186,7 +186,9 @@ export async function POST(request: NextRequest) {
               status: "QUEUED",
               progress: 0,
               currentShot: 0,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               customizations: input.customizations as any,
+
               creditsUsed: 0, // Will be updated after successful shots
             },
           });

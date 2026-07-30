@@ -13,8 +13,6 @@ import {
   History,
   Palette,
   LogOut,
-  HelpCircle,
-  Sparkles,
   Coins,
 } from "lucide-react";
 

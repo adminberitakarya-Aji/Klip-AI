@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { prisma } from "@klipai/db/client";
-import { z } from "zod";
 
 // GET /api/templates/generations/[jobId] - Get job status
 export async function GET(

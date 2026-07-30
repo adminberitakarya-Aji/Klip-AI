@@ -5,8 +5,8 @@ import {
   createTemplateSchema,
   templateQuerySchema,
   type CreateTemplateInput,
-  type TemplateQuery,
 } from "@klipai/core/schemas/template";
+
 import { calculateCreditsFromShots } from "@klipai/ai/pricing";
 import { z } from "zod";
 import { captureError } from "@/lib/error-capture";
