@@ -538,7 +538,13 @@ export function TemplateDetail({
                       </h4>
                       <div className="space-y-3">
                         {template.brandKitSlots?.textPlaceholders?.map(
-                          (ph: { key: string }) => (
+                          (ph: {
+                            key: string;
+                            label?: string;
+                            required?: boolean;
+                            defaultValue?: string;
+                            maxLength?: number;
+                          }) => (
                             <div
                               key={ph.key}
                               className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
