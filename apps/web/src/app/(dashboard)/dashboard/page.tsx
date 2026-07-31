@@ -20,67 +20,61 @@ import {
 import { RecentGenerations } from "@/components/dashboard/RecentGenerations";
 import { UserBalance } from "@/components/dashboard/UserBalance";
 
-/* ── Studio Cards ── */
+/* ── Studio Cards (HeyGen Image 4 Style) ── */
 const studioCards = [
+  {
+    id: "avatar",
+    title: "Create an Avatar",
+    actionText: "Go to Avatars →",
+    image: "/images/cards/card_avatar.jpg",
+    badge: "Avatar AI",
+    badgeColor: "bg-emerald-500/80 text-white",
+    href: "/generate?mode=avatar",
+  },
+  {
+    id: "ai-image",
+    title: "AI Image Generator",
+    actionText: "Create now →",
+    image: "/images/cards/card_ai_image.jpg",
+    badge: "AI Image",
+    badgeColor: "bg-purple-500/80 text-white",
+    href: "/generate?type=text-to-image",
+  },
   {
     id: "text-to-video",
     title: "AI Video Generator",
-    desc: "Generate video cinematic dari prompt teks atau skrip",
-    badge: "Populer",
-    badgeColor: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
-    gradient: "from-cyan-600/30 via-blue-600/20 to-transparent",
-    icon: Video,
+    actionText: "Create now →",
+    image: "/images/cards/card_ai_video.jpg",
+    badge: "AI Video",
+    badgeColor: "bg-cyan-500/80 text-white",
     href: "/generate?type=text-to-video",
   },
   {
     id: "photo-to-video",
     title: "Photo to Video",
-    desc: "Animasi gambar & foto portrait menjadi gerakan nyata",
-    badge: "Hot",
-    badgeColor: "bg-purple-500/20 text-purple-400 border-purple-500/30",
-    gradient: "from-purple-600/30 via-pink-600/20 to-transparent",
-    icon: ImageIcon,
+    actionText: "Try it now →",
+    image: "/images/cards/card_photo_video.jpg",
+    badge: "Motion",
+    badgeColor: "bg-pink-500/80 text-white",
     href: "/generate?type=image-to-video",
   },
   {
-    id: "avatar",
-    title: "Create an Avatar",
-    desc: "Avatar AI juru bicara yang berbicara natural dengan AI voice",
-    badge: "AI Voice",
-    badgeColor: "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    gradient: "from-amber-600/30 via-orange-600/20 to-transparent",
-    icon: Bot,
-    href: "/generate?mode=avatar",
-  },
-  {
-    id: "templates",
-    title: "Storyboard Templates",
-    desc: "100+ template video iklan & UGC Siap pakai untuk brand Anda",
-    badge: "100+ Template",
-    badgeColor: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    gradient: "from-emerald-600/30 via-teal-600/20 to-transparent",
-    icon: Layers,
-    href: "/templates",
+    id: "ai-clipping",
+    title: "AI Clipping",
+    actionText: "Create now →",
+    image: "/images/cards/card_ai_clipping.jpg",
+    badge: "Auto Clip",
+    badgeColor: "bg-amber-500/80 text-white",
+    href: "/generate?mode=clipping",
   },
   {
     id: "upscale",
-    title: "Upscale Video 4K",
-    desc: "Tingkatkan resolusi & kejernihan video hingga 4K UHD",
+    title: "Upscale Video",
+    actionText: "Create now →",
+    image: "/images/cards/card_upscale.jpg",
     badge: "4K UHD",
-    badgeColor: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    gradient: "from-blue-600/30 via-indigo-600/20 to-transparent",
-    icon: Maximize,
+    badgeColor: "bg-blue-500/80 text-white",
     href: "/generate?mode=upscale",
-  },
-  {
-    id: "speech-cleanup",
-    title: "Speech Cleanup & Voice",
-    desc: "Bersihkan audio & dubbing suara profesional dengan AI",
-    badge: "Voice AI",
-    badgeColor: "bg-rose-500/20 text-rose-400 border-rose-500/30",
-    gradient: "from-rose-600/30 via-pink-600/20 to-transparent",
-    icon: Mic,
-    href: "/generate?mode=voice",
   },
 ];
 
@@ -136,38 +130,9 @@ export default function DashboardPage() {
         }}
       />
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-8 space-y-12">
-        {/* ── TOP HEADER / ASSISTANT BAR ── */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span
-              className="text-xs font-semibold px-3 py-1 rounded-full border flex items-center gap-1.5"
-              style={{
-                background: "oklch(0.82 0.15 205 / 0.1)",
-                borderColor: "oklch(0.82 0.15 205 / 0.25)",
-                color: "oklch(0.82 0.15 205)",
-              }}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Klip-AI Studio v2.5
-            </span>
-          </div>
-
-          <button
-            onClick={() => router.push("/generate")}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all hover:scale-105"
-            style={{
-              background: "oklch(1 0 0 / 0.05)",
-              border: "1px solid oklch(1 0 0 / 0.1)",
-            }}
-          >
-            <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-            Tanya AI Assistant
-          </button>
-        </div>
-
-        {/* ── HERO HEADING & PROMPT COMPOSER (HeyGen Image 3 Style) ── */}
-        <div className="text-center max-w-3xl mx-auto space-y-6">
+      <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-12">
+        {/* ── HERO HEADING & PROMPT COMPOSER ── */}
+        <div className="text-center max-w-3xl mx-auto space-y-6 pt-4">
           <h1
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-white"
             style={{ textShadow: "0 0 60px oklch(0.82 0.15 205 / 0.2)" }}
@@ -179,9 +144,9 @@ export default function DashboardPage() {
             </span>
           </h1>
 
-          {/* Interactive Floating Prompt Composer Box */}
+          {/* Clean Interactive Prompt Composer Box */}
           <div
-            className="relative rounded-3xl p-4 text-left transition-all duration-300 shadow-2xl"
+            className="relative rounded-3xl p-5 text-left transition-all duration-300 shadow-2xl space-y-3"
             style={{
               background: "oklch(0.08 0.015 260 / 0.8)",
               border: "1px solid oklch(0.82 0.15 205 / 0.3)",
@@ -189,32 +154,6 @@ export default function DashboardPage() {
               boxShadow: "0 20px 60px -20px oklch(0.82 0.15 205 / 0.2)",
             }}
           >
-            {/* Model selectors pill bar */}
-            <div className="flex items-center gap-2 mb-3 px-2">
-              <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                Mode Prompt:
-              </span>
-              <span
-                className="text-xs font-medium px-2.5 py-0.5 rounded-full"
-                style={{
-                  background: "oklch(0.82 0.15 205 / 0.15)",
-                  color: "oklch(0.82 0.15 205)",
-                  border: "1px solid oklch(0.82 0.15 205 / 0.3)",
-                }}
-              >
-                Seedance 2.5 AI
-              </span>
-              <span
-                className="text-xs font-medium px-2.5 py-0.5 rounded-full text-neutral-400"
-                style={{
-                  background: "oklch(1 0 0 / 0.04)",
-                  border: "1px solid oklch(1 0 0 / 0.08)",
-                }}
-              >
-                Ref to Video
-              </span>
-            </div>
-
             {/* Prompt input textarea */}
             <textarea
               value={promptInput}
@@ -224,28 +163,11 @@ export default function DashboardPage() {
               className="w-full bg-transparent px-2 py-1 text-sm text-white placeholder:text-neutral-500 focus:outline-none resize-none"
             />
 
-            {/* Action bar inside composer */}
-            <div className="flex items-center justify-between pt-3 border-t border-[oklch(1_0_0/0.06)] px-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => router.push("/generate")}
-                  className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-[oklch(1_0_0/0.06)] transition-all"
-                  title="Upload referensi gambar"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => router.push("/generate")}
-                  className="p-2 rounded-xl text-neutral-400 hover:text-white hover:bg-[oklch(1_0_0/0.06)] transition-all"
-                  title="Pengaturan Kamera & Lighting"
-                >
-                  <Sliders className="w-4 h-4" />
-                </button>
-              </div>
-
+            {/* Action button inside composer */}
+            <div className="flex items-center justify-end pt-3 border-t border-[oklch(1_0_0/0.06)] px-2">
               <button
                 onClick={handleStartGenerate}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all duration-200 hover:scale-105"
+                className="flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-xs tracking-wide transition-all duration-200 hover:scale-105"
                 style={{
                   background:
                     "linear-gradient(135deg, oklch(0.82 0.15 205) 0%, oklch(0.7 0.18 230) 100%)",
@@ -260,13 +182,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick preset chips */}
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
             <span className="text-xs text-neutral-500 mr-1">Contoh Ide:</span>
             {quickPresets.map((preset) => (
               <button
                 key={preset}
                 onClick={() => setPromptInput(preset)}
-                className="text-xs px-3 py-1.5 rounded-full transition-all duration-200"
+                className="text-xs px-3.5 py-1.5 rounded-full transition-all duration-200"
                 style={{
                   background: "oklch(1 0 0 / 0.04)",
                   border: "1px solid oklch(1 0 0 / 0.08)",
@@ -295,93 +217,55 @@ export default function DashboardPage() {
           <UserBalance />
         </div>
 
-        {/* ── STUDIO FEATURE CARDS GRID (HeyGen Image 3 Style) ── */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold tracking-tight text-white">
-              Studio Feature Hub
-            </h2>
-            <Link
-              href="/generate"
-              className="text-xs font-semibold transition-colors"
-              style={{ color: "oklch(0.82 0.15 205)" }}
-            >
-              Lihat Semua Fitur →
-            </Link>
-          </div>
+        {/* ── FEATURE CARDS GRID (HeyGen Image 4 Style with Rich Image Banners) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {studioCards.map((card) => {
+            return (
+              <Link
+                key={card.id}
+                href={card.href}
+                className="group relative rounded-3xl h-52 overflow-hidden transition-all duration-300 border border-white/10 hover:border-cyan-400/50 shadow-lg hover:shadow-cyan-500/20 flex flex-col justify-between p-5"
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform =
+                    "translateY(-4px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLAnchorElement).style.transform =
+                    "translateY(0)";
+                }}
+              >
+                {/* Background Image with Dark Gradient Overlay */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                  style={{ backgroundImage: `url('${card.image}')` }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {studioCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <Link
-                  key={card.id}
-                  href={card.href}
-                  className="group relative rounded-2xl p-6 flex flex-col justify-between h-48 transition-all duration-300 overflow-hidden"
-                  style={{
-                    background: "oklch(0.07 0.01 260)",
-                    border: "1px solid oklch(1 0 0 / 0.08)",
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor =
-                      "oklch(0.82 0.15 205 / 0.4)";
-                    (e.currentTarget as HTMLAnchorElement).style.transform =
-                      "translateY(-4px)";
-                    (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                      "0 12px 30px -10px oklch(0.82 0.15 205 / 0.2)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLAnchorElement).style.borderColor =
-                      "oklch(1 0 0 / 0.08)";
-                    (e.currentTarget as HTMLAnchorElement).style.transform =
-                      "translateY(0)";
-                    (e.currentTarget as HTMLAnchorElement).style.boxShadow =
-                      "none";
-                  }}
-                >
-                  {/* Background gradient overlay */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${card.gradient} opacity-40 group-hover:opacity-70 transition-opacity`}
-                  />
+                {/* Top Badge */}
+                <div className="relative z-10 flex justify-end">
+                  <span
+                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md shadow-md ${card.badgeColor}`}
+                  >
+                    {card.badge}
+                  </span>
+                </div>
 
-                  {/* Top row: Badge + Icon */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${card.badgeColor}`}
-                    >
-                      {card.badge}
-                    </span>
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
-                      style={{
-                        background: "oklch(1 0 0 / 0.06)",
-                        border: "1px solid oklch(1 0 0 / 0.1)",
-                      }}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-
-                  {/* Bottom row: Title, Desc, Arrow */}
-                  <div className="relative z-10 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-base font-bold text-white group-hover:text-cyan-300 transition-colors">
-                        {card.title}
-                      </h3>
-                      <ArrowUpRight className="w-4 h-4 text-neutral-500 group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                    </div>
-                    <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
-                      {card.desc}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
+                {/* Bottom Content: Title & Action Link */}
+                <div className="relative z-10 space-y-1">
+                  <h3 className="text-xl font-black text-white tracking-tight drop-shadow-md group-hover:text-cyan-300 transition-colors">
+                    {card.title}
+                  </h3>
+                  <p className="text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors flex items-center gap-1">
+                    {card.actionText}
+                  </p>
+                </div>
+              </Link>
+            );
+          })}
         </div>
 
         {/* ── RECENT GENERATIONS ── */}
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto pt-4">
           <RecentGenerations />
         </div>
       </div>

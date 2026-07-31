@@ -9,8 +9,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     >
       <DashboardSidebar />
 
-      {/* Main Studio Canvas - offset by 72px slim rail */}
-      <main className="flex-1 pl-[72px] min-h-screen">{children}</main>
+      {/* Main Studio Canvas - offset by 224px sidebar */}
+      <main className="flex-1 pl-56 min-h-screen">{children}</main>
     </div>
   );
 }
