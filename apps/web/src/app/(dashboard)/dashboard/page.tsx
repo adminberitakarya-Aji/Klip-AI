@@ -7,16 +7,15 @@ import Link from "next/link";
 import {
   Wand2,
   Plus,
-  Sliders,
+  SlidersHorizontal,
   X,
-  Image as ImageIcon,
   Check,
-  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { RecentGenerations } from "@/components/dashboard/RecentGenerations";
 import { UserBalance } from "@/components/dashboard/UserBalance";
 
-/* ── Studio Cards (HeyGen Image 4 Style) ── */
+/* ── Studio Cards ── */
 const studioCards = [
   {
     id: "avatar",
@@ -83,26 +82,22 @@ const quickPresets = [
   "Tutorial Edukasi Singkat",
 ];
 
-/* ── Settings Options ── */
+/* ── Aspect Ratio visual icons ── */
+// SVG rect dimensions to visually represent each ratio
 const ASPECT_RATIOS = [
-  { label: "16:9", desc: "Landscape" },
-  { label: "9:16", desc: "Portrait" },
-  { label: "1:1", desc: "Square" },
-  { label: "4:3", desc: "Standard" },
+  { label: "16:9", w: 32, h: 18 },
+  { label: "4:3", w: 28, h: 21 },
+  { label: "1:1", w: 24, h: 24 },
+  { label: "3:4", w: 21, h: 28 },
+  { label: "9:16", w: 18, h: 32 },
 ];
 
-const DURATIONS = [
-  { label: "5s", value: 5 },
-  { label: "10s", value: 10 },
-  { label: "15s", value: 15 },
-  { label: "30s", value: 30 },
+const VIDEO_ASPECT_RATIOS = [
+  { label: "16:9", w: 32, h: 18 },
+  { label: "9:16", w: 18, h: 32 },
 ];
 
-const QUALITY_OPTIONS = [
-  { label: "Standard", desc: "Faster, lower cost" },
-  { label: "High", desc: "Balanced speed & quality" },
-  { label: "Ultra", desc: "Best quality, slower" },
-];
+const SCALE_OPTIONS = ["x1", "x2", "x3", "x4"];
 
 const MODEL_OPTIONS = [
   { label: "Kling 2.1 Master", tag: "Latest" },
@@ -111,12 +106,44 @@ const MODEL_OPTIONS = [
   { label: "Wan 2.1 T2V", tag: null },
 ];
 
-/* ── Settings state interface ── */
+/* ── Aspect Ratio SVG Icon ── */
+function AspectIcon({
+  w,
+  h,
+  active,
+}: {
+  w: number;
+  h: number;
+  active: boolean;
+}) {
+  const pad = 4;
+  const svgW = 40;
+  const svgH = 40;
+  const rx = (svgW - w) / 2;
+  const ry = (svgH - h) / 2;
+  return (
+    <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`}>
+      <rect
+        x={rx}
+        y={ry}
+        width={w - pad}
+        height={h - pad}
+        rx={2}
+        fill="none"
+        stroke={active ? "oklch(0.82 0.15 205)" : "oklch(1 0 0 / 0.35)"}
+        strokeWidth={1.8}
+      />
+    </svg>
+  );
+}
+
 interface GenerationSettings {
-  aspectRatio: string;
-  duration: number;
-  quality: string;
+  imageAspectRatio: string;
+  imageScale: string;
+  videoAspectRatio: string;
+  videoScale: string;
   model: string;
+  confirmBeforeCreate: boolean;
 }
 
 export default function DashboardPage() {
@@ -133,13 +160,14 @@ export default function DashboardPage() {
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [settings, setSettings] = useState<GenerationSettings>({
-    aspectRatio: "16:9",
-    duration: 10,
-    quality: "High",
+    imageAspectRatio: "16:9",
+    imageScale: "x1",
+    videoAspectRatio: "16:9",
+    videoScale: "x1",
     model: "Kling 2.1 Master",
+    confirmBeforeCreate: true,
   });
 
-  // Close settings popover on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
@@ -169,21 +197,15 @@ export default function DashboardPage() {
 
   if (!session) return null;
 
-  /* ── Handle image upload via "+" button ── */
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
+  const handleUploadClick = () => fileInputRef.current?.click();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFileName(file.name);
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setUploadedImage(ev.target?.result as string);
-    };
+    reader.onload = (ev) => setUploadedImage(ev.target?.result as string);
     reader.readAsDataURL(file);
-    // Reset input so the same file can be re-selected
     e.target.value = "";
   };
 
@@ -192,14 +214,14 @@ export default function DashboardPage() {
     setUploadedFileName(null);
   };
 
-  /* ── Handle generate ── */
   const handleStartGenerate = () => {
     const params = new URLSearchParams();
     if (promptInput.trim()) params.set("prompt", promptInput.trim());
     if (uploadedImage) params.set("type", "image-to-video");
-    params.set("aspectRatio", settings.aspectRatio);
-    params.set("duration", String(settings.duration));
-    params.set("quality", settings.quality);
+    params.set("imageAspectRatio", settings.imageAspectRatio);
+    params.set("imageScale", settings.imageScale);
+    params.set("videoAspectRatio", settings.videoAspectRatio);
+    params.set("videoScale", settings.videoScale);
     params.set("model", settings.model);
     router.push(`/generate?${params.toString()}`);
   };
@@ -209,7 +231,6 @@ export default function DashboardPage() {
       className="min-h-screen relative overflow-hidden text-white"
       style={{ background: "oklch(0.04 0 0)" }}
     >
-      {/* Ambient aurora background glow */}
       <div
         className="pointer-events-none fixed inset-0 z-0 opacity-30"
         style={{
@@ -219,7 +240,7 @@ export default function DashboardPage() {
       />
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 py-10 space-y-12">
-        {/* ── HERO HEADING & PROMPT COMPOSER ── */}
+        {/* ── HERO ── */}
         <div className="text-center max-w-3xl mx-auto space-y-6 pt-4">
           <h1
             className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-tight text-white"
@@ -232,7 +253,7 @@ export default function DashboardPage() {
             </span>
           </h1>
 
-          {/* ═══ PROMPT COMPOSER BOX ═══ */}
+          {/* ═══ PROMPT COMPOSER ═══ */}
           <div
             className="relative rounded-3xl p-5 text-left transition-all duration-300 shadow-2xl space-y-3"
             style={{
@@ -242,7 +263,7 @@ export default function DashboardPage() {
               boxShadow: "0 20px 60px -20px oklch(0.82 0.15 205 / 0.2)",
             }}
           >
-            {/* Uploaded image preview strip */}
+            {/* Uploaded image preview */}
             {uploadedImage && (
               <div className="flex items-center gap-3 px-2 pt-1 pb-2 border-b border-white/5">
                 <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-cyan-400/40 flex-shrink-0">
@@ -264,29 +285,27 @@ export default function DashboardPage() {
                 <button
                   onClick={handleRemoveImage}
                   className="w-6 h-6 rounded-full flex items-center justify-center bg-white/5 hover:bg-red-500/20 text-neutral-400 hover:text-red-400 transition-colors flex-shrink-0"
-                  title="Remove image"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
 
-            {/* Prompt input textarea */}
+            {/* Textarea */}
             <textarea
               value={promptInput}
               onChange={(e) => setPromptInput(e.target.value)}
               placeholder={
                 uploadedImage
-                  ? "Describe how you want this image to move... (e.g., slow zoom in, camera pans left)"
+                  ? "Describe how you want this image to move..."
                   : "Ketik ide video, skrip, atau deskripsi visual Anda... (contoh: A cinematic shot of a coffee shop artisan brewing espresso in 4K, slow motion)"
               }
               rows={3}
               className="w-full bg-transparent px-2 py-1 text-sm text-white placeholder:text-neutral-500 focus:outline-none resize-none"
             />
 
-            {/* Bottom toolbar */}
+            {/* Toolbar */}
             <div className="flex items-center justify-between pt-3 border-t border-[oklch(1_0_0/0.06)] px-1">
-              {/* LEFT: + and Settings buttons */}
               <div className="flex items-center gap-2">
                 {/* Hidden file input */}
                 <input
@@ -297,7 +316,7 @@ export default function DashboardPage() {
                   onChange={handleFileChange}
                 />
 
-                {/* + Upload button */}
+                {/* + Upload */}
                 <button
                   onClick={handleUploadClick}
                   title="Upload image or video reference"
@@ -322,11 +341,10 @@ export default function DashboardPage() {
                   </span>
                 </button>
 
-                {/* ⚙ Settings button with popover */}
+                {/* ⚙ Settings */}
                 <div ref={settingsRef} className="relative">
                   <button
                     onClick={() => setShowSettings((v) => !v)}
-                    title="Generation settings"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95"
                     style={{
                       background: showSettings
@@ -338,232 +356,363 @@ export default function DashboardPage() {
                         : "oklch(1 0 0 / 0.6)",
                     }}
                   >
-                    <Sliders className="w-3.5 h-3.5" />
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Settings</span>
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform ${showSettings ? "rotate-180" : ""}`}
+                    <ChevronUp
+                      className={`w-3 h-3 transition-transform ${showSettings ? "" : "rotate-180"}`}
                     />
                   </button>
 
-                  {/* ─── Settings Popover ─── */}
+                  {/* ─── SETTINGS POPOVER (opens upward, scrollable) ─── */}
                   {showSettings && (
                     <div
-                      className="absolute left-0 bottom-full mb-3 w-80 rounded-2xl p-5 space-y-5 z-50"
+                      className="absolute left-0 bottom-full mb-3 w-[340px] rounded-2xl overflow-hidden z-50"
                       style={{
-                        background: "oklch(0.08 0.015 260 / 0.98)",
-                        border: "1px solid oklch(0.82 0.15 205 / 0.25)",
-                        backdropFilter: "blur(32px)",
-                        boxShadow:
-                          "0 -20px 60px -10px oklch(0.82 0.15 205 / 0.15)",
+                        background: "oklch(0.09 0.012 260)",
+                        border: "1px solid oklch(1 0 0 / 0.1)",
+                        boxShadow: "0 -24px 64px -12px oklch(0 0 0 / 0.6)",
                       }}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-bold text-white">
-                          Generation Settings
-                        </p>
-                        <button
-                          onClick={() => setShowSettings(false)}
-                          className="w-6 h-6 rounded-full flex items-center justify-center bg-white/5 hover:bg-white/10 text-neutral-400 transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      {/* Scrollable content */}
+                      <div className="max-h-[70vh] overflow-y-auto p-5 space-y-5 scrollbar-thin">
+                        {/* Header */}
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-bold text-white">
+                            Generation Settings
+                          </p>
+                          <button
+                            onClick={() => setShowSettings(false)}
+                            className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 text-neutral-400 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
 
-                      {/* Aspect Ratio */}
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                          Aspect Ratio
-                        </label>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {ASPECT_RATIOS.map((ar) => (
+                        {/* Confirm before create */}
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            Konfirmasi sebelum membuat
+                          </p>
+                          <div
+                            className="rounded-2xl overflow-hidden"
+                            style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
+                          >
+                            {/* Option: Selalu */}
                             <button
-                              key={ar.label}
                               onClick={() =>
                                 setSettings((s) => ({
                                   ...s,
-                                  aspectRatio: ar.label,
+                                  confirmBeforeCreate: true,
                                 }))
                               }
-                              className="flex flex-col items-center gap-0.5 py-2 rounded-xl text-[10px] font-semibold transition-all duration-200"
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
                               style={{
-                                background:
-                                  settings.aspectRatio === ar.label
-                                    ? "oklch(0.82 0.15 205 / 0.2)"
-                                    : "oklch(1 0 0 / 0.04)",
-                                border: `1px solid ${settings.aspectRatio === ar.label ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.08)"}`,
-                                color:
-                                  settings.aspectRatio === ar.label
+                                borderBottom: "1px solid oklch(1 0 0 / 0.07)",
+                                background: settings.confirmBeforeCreate
+                                  ? "oklch(1 0 0 / 0.03)"
+                                  : "transparent",
+                              }}
+                            >
+                              {/* Radio */}
+                              <span
+                                className="mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
+                                style={{
+                                  borderColor: settings.confirmBeforeCreate
                                     ? "oklch(0.82 0.15 205)"
-                                    : "oklch(1 0 0 / 0.5)",
-                              }}
-                            >
-                              <span className="text-[13px] font-bold">
-                                {ar.label}
+                                    : "oklch(1 0 0 / 0.3)",
+                                }}
+                              >
+                                {settings.confirmBeforeCreate && (
+                                  <span
+                                    className="w-2 h-2 rounded-full"
+                                    style={{
+                                      background: "oklch(0.82 0.15 205)",
+                                    }}
+                                  />
+                                )}
                               </span>
-                              <span style={{ color: "oklch(1 0 0 / 0.35)" }}>
-                                {ar.desc}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Duration */}
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                          Duration
-                        </label>
-                        <div className="grid grid-cols-4 gap-1.5">
-                          {DURATIONS.map((d) => (
-                            <button
-                              key={d.value}
-                              onClick={() =>
-                                setSettings((s) => ({
-                                  ...s,
-                                  duration: d.value,
-                                }))
-                              }
-                              className="py-2 rounded-xl text-[11px] font-bold transition-all duration-200"
-                              style={{
-                                background:
-                                  settings.duration === d.value
-                                    ? "oklch(0.82 0.15 205 / 0.2)"
-                                    : "oklch(1 0 0 / 0.04)",
-                                border: `1px solid ${settings.duration === d.value ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.08)"}`,
-                                color:
-                                  settings.duration === d.value
-                                    ? "oklch(0.82 0.15 205)"
-                                    : "oklch(1 0 0 / 0.5)",
-                              }}
-                            >
-                              {d.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Quality */}
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                          Quality
-                        </label>
-                        <div className="space-y-1.5">
-                          {QUALITY_OPTIONS.map((q) => (
-                            <button
-                              key={q.label}
-                              onClick={() =>
-                                setSettings((s) => ({ ...s, quality: q.label }))
-                              }
-                              className="w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 text-left"
-                              style={{
-                                background:
-                                  settings.quality === q.label
-                                    ? "oklch(0.82 0.15 205 / 0.15)"
-                                    : "oklch(1 0 0 / 0.04)",
-                                border: `1px solid ${settings.quality === q.label ? "oklch(0.82 0.15 205 / 0.4)" : "oklch(1 0 0 / 0.08)"}`,
-                              }}
-                            >
                               <div>
-                                <p
-                                  className="text-xs font-semibold"
-                                  style={{
-                                    color:
-                                      settings.quality === q.label
-                                        ? "oklch(0.82 0.15 205)"
-                                        : "oklch(1 0 0 / 0.7)",
-                                  }}
-                                >
-                                  {q.label}
+                                <p className="text-xs font-semibold text-white">
+                                  Selalu
                                 </p>
-                                <p className="text-[10px] text-neutral-500">
-                                  {q.desc}
+                                <p className="text-[10px] text-neutral-500 mt-0.5 leading-relaxed">
+                                  Agen akan meminta konfirmasi sebelum membuat
+                                  media.
                                 </p>
                               </div>
-                              {settings.quality === q.label && (
-                                <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                              )}
                             </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Model */}
-                      <div className="space-y-2">
-                        <label className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                          AI Model
-                        </label>
-                        <div className="space-y-1.5">
-                          {MODEL_OPTIONS.map((m) => (
+                            {/* Option: Tidak pernah */}
                             <button
-                              key={m.label}
                               onClick={() =>
-                                setSettings((s) => ({ ...s, model: m.label }))
+                                setSettings((s) => ({
+                                  ...s,
+                                  confirmBeforeCreate: false,
+                                }))
                               }
-                              className="w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all duration-200 text-left"
+                              className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
                               style={{
-                                background:
-                                  settings.model === m.label
-                                    ? "oklch(0.82 0.15 205 / 0.15)"
-                                    : "oklch(1 0 0 / 0.04)",
-                                border: `1px solid ${settings.model === m.label ? "oklch(0.82 0.15 205 / 0.4)" : "oklch(1 0 0 / 0.08)"}`,
+                                background: !settings.confirmBeforeCreate
+                                  ? "oklch(1 0 0 / 0.03)"
+                                  : "transparent",
                               }}
                             >
                               <span
-                                className="text-xs font-semibold"
+                                className="mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0"
                                 style={{
-                                  color:
-                                    settings.model === m.label
-                                      ? "oklch(0.82 0.15 205)"
-                                      : "oklch(1 0 0 / 0.7)",
+                                  borderColor: !settings.confirmBeforeCreate
+                                    ? "oklch(0.82 0.15 205)"
+                                    : "oklch(1 0 0 / 0.3)",
                                 }}
                               >
-                                {m.label}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                {m.tag && (
+                                {!settings.confirmBeforeCreate && (
                                   <span
-                                    className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                                    className="w-2 h-2 rounded-full"
                                     style={{
-                                      background: "oklch(0.82 0.15 205 / 0.2)",
-                                      color: "oklch(0.82 0.15 205)",
-                                      border:
-                                        "1px solid oklch(0.82 0.15 205 / 0.3)",
+                                      background: "oklch(0.82 0.15 205)",
                                     }}
-                                  >
-                                    {m.tag}
-                                  </span>
+                                  />
                                 )}
-                                {settings.model === m.label && (
-                                  <Check className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                                )}
+                              </span>
+                              <div>
+                                <p className="text-xs font-semibold text-white">
+                                  Tidak pernah
+                                </p>
+                                <p className="text-[10px] text-neutral-500 mt-0.5 leading-relaxed">
+                                  Agen akan membuat media dan otomatis memotong
+                                  kredit.
+                                </p>
                               </div>
                             </button>
-                          ))}
+                          </div>
+                        </div>
+
+                        {/* Default pembuatan gambar — Aspect Ratio */}
+                        <div className="space-y-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            Default pembuatan gambar
+                          </p>
+                          {/* Aspect ratio icons row */}
+                          <div className="flex items-end gap-2">
+                            {ASPECT_RATIOS.map((ar) => {
+                              const active =
+                                settings.imageAspectRatio === ar.label;
+                              return (
+                                <button
+                                  key={ar.label}
+                                  onClick={() =>
+                                    setSettings((s) => ({
+                                      ...s,
+                                      imageAspectRatio: ar.label,
+                                    }))
+                                  }
+                                  className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl flex-1 transition-all duration-150"
+                                  style={{
+                                    background: active
+                                      ? "oklch(1 0 0 / 0.1)"
+                                      : "oklch(1 0 0 / 0.04)",
+                                    border: `1px solid ${active ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.07)"}`,
+                                  }}
+                                >
+                                  <AspectIcon
+                                    w={ar.w}
+                                    h={ar.h}
+                                    active={active}
+                                  />
+                                  <span
+                                    className="text-[9px] font-bold"
+                                    style={{
+                                      color: active
+                                        ? "oklch(0.82 0.15 205)"
+                                        : "oklch(1 0 0 / 0.45)",
+                                    }}
+                                  >
+                                    {ar.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {/* Scale row */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {SCALE_OPTIONS.map((sc) => {
+                              const active = settings.imageScale === sc;
+                              return (
+                                <button
+                                  key={sc}
+                                  onClick={() =>
+                                    setSettings((s) => ({
+                                      ...s,
+                                      imageScale: sc,
+                                    }))
+                                  }
+                                  className="py-2 rounded-xl text-xs font-bold transition-all duration-150"
+                                  style={{
+                                    background: active
+                                      ? "oklch(1 0 0 / 0.12)"
+                                      : "oklch(1 0 0 / 0.04)",
+                                    border: `1px solid ${active ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.07)"}`,
+                                    color: active
+                                      ? "white"
+                                      : "oklch(1 0 0 / 0.45)",
+                                  }}
+                                >
+                                  {sc}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Default pembuatan video — Aspect Ratio */}
+                        <div className="space-y-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            Default pembuatan video
+                          </p>
+                          {/* Video aspect ratio (only 16:9 & 9:16) */}
+                          <div className="flex items-end gap-3">
+                            {VIDEO_ASPECT_RATIOS.map((ar) => {
+                              const active =
+                                settings.videoAspectRatio === ar.label;
+                              return (
+                                <button
+                                  key={ar.label}
+                                  onClick={() =>
+                                    setSettings((s) => ({
+                                      ...s,
+                                      videoAspectRatio: ar.label,
+                                    }))
+                                  }
+                                  className="flex flex-col items-center gap-1 px-4 py-2 rounded-xl flex-1 transition-all duration-150"
+                                  style={{
+                                    background: active
+                                      ? "oklch(1 0 0 / 0.1)"
+                                      : "oklch(1 0 0 / 0.04)",
+                                    border: `1px solid ${active ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.07)"}`,
+                                  }}
+                                >
+                                  <AspectIcon
+                                    w={ar.w}
+                                    h={ar.h}
+                                    active={active}
+                                  />
+                                  <span
+                                    className="text-[9px] font-bold"
+                                    style={{
+                                      color: active
+                                        ? "oklch(0.82 0.15 205)"
+                                        : "oklch(1 0 0 / 0.45)",
+                                    }}
+                                  >
+                                    {ar.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {/* Video scale row */}
+                          <div className="grid grid-cols-4 gap-2">
+                            {SCALE_OPTIONS.map((sc) => {
+                              const active = settings.videoScale === sc;
+                              return (
+                                <button
+                                  key={sc}
+                                  onClick={() =>
+                                    setSettings((s) => ({
+                                      ...s,
+                                      videoScale: sc,
+                                    }))
+                                  }
+                                  className="py-2 rounded-xl text-xs font-bold transition-all duration-150"
+                                  style={{
+                                    background: active
+                                      ? "oklch(1 0 0 / 0.12)"
+                                      : "oklch(1 0 0 / 0.04)",
+                                    border: `1px solid ${active ? "oklch(0.82 0.15 205 / 0.5)" : "oklch(1 0 0 / 0.07)"}`,
+                                    color: active
+                                      ? "white"
+                                      : "oklch(1 0 0 / 0.45)",
+                                  }}
+                                >
+                                  {sc}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* AI Model */}
+                        <div className="space-y-2">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                            AI Model
+                          </p>
+                          <div
+                            className="rounded-2xl overflow-hidden"
+                            style={{ border: "1px solid oklch(1 0 0 / 0.08)" }}
+                          >
+                            {MODEL_OPTIONS.map((m, i) => {
+                              const active = settings.model === m.label;
+                              return (
+                                <button
+                                  key={m.label}
+                                  onClick={() =>
+                                    setSettings((s) => ({
+                                      ...s,
+                                      model: m.label,
+                                    }))
+                                  }
+                                  className="w-full flex items-center justify-between px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+                                  style={{
+                                    borderBottom:
+                                      i < MODEL_OPTIONS.length - 1
+                                        ? "1px solid oklch(1 0 0 / 0.07)"
+                                        : "none",
+                                    background: active
+                                      ? "oklch(1 0 0 / 0.04)"
+                                      : "transparent",
+                                  }}
+                                >
+                                  <span
+                                    className="text-xs font-semibold"
+                                    style={{
+                                      color: active
+                                        ? "white"
+                                        : "oklch(1 0 0 / 0.6)",
+                                    }}
+                                  >
+                                    {m.label}
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    {m.tag && (
+                                      <span
+                                        className="text-[9px] font-bold px-2 py-0.5 rounded-full"
+                                        style={{
+                                          background:
+                                            "oklch(0.82 0.15 205 / 0.15)",
+                                          color: "oklch(0.82 0.15 205)",
+                                          border:
+                                            "1px solid oklch(0.82 0.15 205 / 0.3)",
+                                        }}
+                                      >
+                                        {m.tag}
+                                      </span>
+                                    )}
+                                    {active && (
+                                      <Check className="w-3.5 h-3.5 text-cyan-400" />
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
-
-                      {/* Active settings summary */}
-                      <div
-                        className="rounded-xl px-3 py-2 text-[10px] space-y-0.5"
-                        style={{
-                          background: "oklch(1 0 0 / 0.03)",
-                          border: "1px solid oklch(1 0 0 / 0.06)",
-                        }}
-                      >
-                        <p className="text-neutral-400 font-semibold uppercase tracking-wide text-[9px] mb-1">
-                          Current Config
-                        </p>
-                        <p style={{ color: "oklch(1 0 0 / 0.6)" }}>
-                          📐 {settings.aspectRatio} · ⏱ {settings.duration}s ·
-                          ✨ {settings.quality} · 🤖 {settings.model}
-                        </p>
-                      </div>
+                      {/* end scrollable */}
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* RIGHT: Generate button */}
+              {/* Generate button */}
               <button
                 onClick={handleStartGenerate}
                 className="flex items-center gap-2 px-7 py-3 rounded-xl font-bold text-xs tracking-wide transition-all duration-200 hover:scale-105 active:scale-95"
@@ -611,56 +760,49 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── USER BALANCE METER CARD ── */}
+        {/* ── USER BALANCE ── */}
         <div className="max-w-4xl mx-auto">
           <UserBalance />
         </div>
 
-        {/* ── FEATURE CARDS GRID (HeyGen Image 4 Style with Rich Image Banners) ── */}
+        {/* ── FEATURE CARDS GRID ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {studioCards.map((card) => {
-            return (
-              <Link
-                key={card.id}
-                href={card.href}
-                className="group relative rounded-3xl h-52 overflow-hidden transition-all duration-300 border border-white/10 hover:border-cyan-400/50 shadow-lg hover:shadow-cyan-500/20 flex flex-col justify-between p-5"
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.transform =
-                    "translateY(-4px)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLAnchorElement).style.transform =
-                    "translateY(0)";
-                }}
-              >
-                {/* Background Image with Dark Gradient Overlay */}
-                <div
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
-                  style={{ backgroundImage: `url('${card.image}')` }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
-
-                {/* Top Badge */}
-                <div className="relative z-10 flex justify-end">
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md shadow-md ${card.badgeColor}`}
-                  >
-                    {card.badge}
-                  </span>
-                </div>
-
-                {/* Bottom Content: Title & Action Link */}
-                <div className="relative z-10 space-y-1">
-                  <h3 className="text-xl font-black text-white tracking-tight drop-shadow-md group-hover:text-cyan-300 transition-colors">
-                    {card.title}
-                  </h3>
-                  <p className="text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors flex items-center gap-1">
-                    {card.actionText}
-                  </p>
-                </div>
-              </Link>
-            );
-          })}
+          {studioCards.map((card) => (
+            <Link
+              key={card.id}
+              href={card.href}
+              className="group relative rounded-3xl h-52 overflow-hidden transition-all duration-300 border border-white/10 hover:border-cyan-400/50 shadow-lg hover:shadow-cyan-500/20 flex flex-col justify-between p-5"
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.transform =
+                  "translateY(-4px)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.transform =
+                  "translateY(0)";
+              }}
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110"
+                style={{ backgroundImage: `url('${card.image}')` }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+              <div className="relative z-10 flex justify-end">
+                <span
+                  className={`text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md shadow-md ${card.badgeColor}`}
+                >
+                  {card.badge}
+                </span>
+              </div>
+              <div className="relative z-10 space-y-1">
+                <h3 className="text-xl font-black text-white tracking-tight drop-shadow-md group-hover:text-cyan-300 transition-colors">
+                  {card.title}
+                </h3>
+                <p className="text-xs font-semibold text-neutral-300 group-hover:text-white transition-colors">
+                  {card.actionText}
+                </p>
+              </div>
+            </Link>
+          ))}
         </div>
 
         {/* ── RECENT GENERATIONS ── */}
