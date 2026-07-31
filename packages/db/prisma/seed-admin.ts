@@ -1,6 +1,10 @@
 import { PrismaClient, Role } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+declare const process: {
+  exit(code?: number): never;
+};
+
 const prisma = new PrismaClient();
 
 async function main() {
